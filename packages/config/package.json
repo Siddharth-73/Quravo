@@ -1,0 +1,14 @@
+{
+  "name": "@quravo/config",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    "./tsconfig.base.json": "./tsconfig.base.json",
+    "./tsconfig.nestjs.json": "./tsconfig.nestjs.json"
+  },
+  "files": [
+    "tsconfig.base.json",
+    "tsconfig.nestjs.json"
+  ],
+  "license": "MIT"
+}

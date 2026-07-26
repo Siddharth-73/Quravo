@@ -1,0 +1,25 @@
+{
+  "name": "quravo-monorepo",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate": "pnpm --filter @quravo/db generate",
+    "db:migrate": "pnpm --filter @quravo/db migrate",
+    "db:studio": "pnpm --filter @quravo/db studio"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "turbo": "^2.1.3",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.3"
+  },
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
