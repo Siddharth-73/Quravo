@@ -18,3 +18,7 @@ export * from './patient-timeline';
 export * from './patient-attachments';
 export * from './appointments';
 export * from './appointment-reminders';
+export * from './emr-encounters';
+export * from './prescriptions';
+export * from './prescription-items';
+export * from './emr-reports';

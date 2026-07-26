@@ -13,6 +13,7 @@ import { ClinicModule } from './modules/clinic/clinic.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
 import { PatientModule } from './modules/patient/patient.module';
 import { AppointmentModule } from './modules/appointment/appointment.module';
+import { EmrModule } from './modules/emr/emr.module';
 import { CorrelationContextMiddleware } from './common/middleware/correlation-context.middleware';
 import { TenantResolverMiddleware } from './common/middleware/tenant-resolver.middleware';
 import { RequestContext } from '@quravo/common';
@@ -48,6 +49,7 @@ import { RequestContext } from '@quravo/common';
     SubscriptionModule,
     PatientModule,
     AppointmentModule,
+    EmrModule,
   ],
 })
 export class AppModule implements NestModule {
