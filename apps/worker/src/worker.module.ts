@@ -6,6 +6,10 @@ import { EmailProcessor } from './processors/email.processor';
 import { EmailProvider } from './providers/email.provider';
 import { ReminderProcessor } from './processors/reminder.processor';
 import { NotificationProcessor } from './processors/notification.processor';
+import { AnalyticsProcessor } from './processors/analytics.processor';
+import { AiProcessor } from './processors/ai.processor';
+import { ExportProcessor } from './processors/export.processor';
+import { AiService } from './providers/ai/ai.service';
 
 @Module({
   imports: [
@@ -22,6 +26,16 @@ import { NotificationProcessor } from './processors/notification.processor';
       },
     }),
   ],
-  providers: [DefaultProcessor, EmailProcessor, EmailProvider, ReminderProcessor, NotificationProcessor],
+  providers: [
+    DefaultProcessor, 
+    EmailProcessor, 
+    EmailProvider, 
+    ReminderProcessor, 
+    NotificationProcessor, 
+    AnalyticsProcessor,
+    AiProcessor,
+    ExportProcessor,
+    AiService,
+  ],
 })
 export class WorkerModule {}

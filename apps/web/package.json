@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ducanh2912/next-pwa": "^10.2.9",
     "@quravo/common": "workspace:*",
     "@tanstack/react-query": "^5.59.15",
     "clsx": "^2.1.1",
@@ -17,6 +18,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.1",
+    "socket.io-client": "^4.8.3",
     "tailwind-merge": "^2.5.4",
     "zod": "^3.23.8"
   },

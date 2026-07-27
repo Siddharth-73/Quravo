@@ -14,6 +14,12 @@ import { SubscriptionModule } from './modules/subscription/subscription.module';
 import { PatientModule } from './modules/patient/patient.module';
 import { AppointmentModule } from './modules/appointment/appointment.module';
 import { EmrModule } from './modules/emr/emr.module';
+import { BillingModule } from './modules/billing/billing.module';
+import { RealtimeModule } from './modules/realtime/realtime.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { PushModule } from './modules/push/push.module';
+import { AiModule } from './modules/ai/ai.module';
+import { ExportModule } from './modules/export/export.module';
 import { CorrelationContextMiddleware } from './common/middleware/correlation-context.middleware';
 import { TenantResolverMiddleware } from './common/middleware/tenant-resolver.middleware';
 import { RequestContext } from '@quravo/common';
@@ -50,6 +56,12 @@ import { RequestContext } from '@quravo/common';
     PatientModule,
     AppointmentModule,
     EmrModule,
+    BillingModule,
+    RealtimeModule,
+    AnalyticsModule,
+    PushModule,
+    AiModule,
+    ExportModule,
   ],
 })
 export class AppModule implements NestModule {

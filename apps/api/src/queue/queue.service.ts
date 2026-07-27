@@ -5,28 +5,43 @@ import Redis from 'ioredis';
 
 @Injectable()
 export class QueueService implements OnModuleInit, OnModuleDestroy {
-  private redisConnection!: Redis;
-  private defaultQueue!: Queue;
+  public readonly emailQueue: Queue;
+  public readonly auditQueue: Queue;
+  public readonly analyticsQueue: Queue;
+  public readonly aiQueue: Queue;
+  public readonly exportQueue: Queue;
 
-  constructor(private readonly configService: ConfigService) {}
+  public readonly redisConnection: Redis;
 
-  onModuleInit() {
-    const host = this.configService.get<string>('REDIS_HOST', 'localhost');
-    const port = this.configService.get<number>('REDIS_PORT', 6379);
+  constructor(private readonly configService: ConfigService) {
+    const redisHost = this.configService.get<string>('REDIS_HOST', 'localhost');
+    const redisPort = this.configService.get<number>('REDIS_PORT', 6379);
 
     this.redisConnection = new Redis({
-      host,
-      port,
+      host: redisHost,
+      port: redisPort,
       maxRetriesPerRequest: null,
     });
 
-    this.defaultQueue = new Queue('default-queue', {
-      connection: this.redisConnection,
-    });
+    this.emailQueue = new Queue('email.queue', { connection: this.redisConnection });
+    this.auditQueue = new Queue('audit.queue', { connection: this.redisConnection });
+    this.analyticsQueue = new Queue('analytics.queue', { connection: this.redisConnection });
+    this.aiQueue = new Queue('ai.queue', { connection: this.redisConnection });
+    this.exportQueue = new Queue('export.queue', { connection: this.redisConnection });
   }
 
-  async addJob<T>(name: string, data: T): Promise<void> {
-    await this.defaultQueue.add(name, data);
+  onModuleInit() {}
+
+  async addExportJob(jobName: string, data: any) {
+    return this.exportQueue.add(jobName, data);
+  }
+
+  async addAiJob(jobName: string, data: any) {
+    return this.aiQueue.add(jobName, data);
+  }
+
+  async addAnalyticsJob<T>(name: string, data: T): Promise<void> {
+    await this.analyticsQueue.add(name, data);
   }
 
   async getRedisStatus(): Promise<boolean> {
@@ -41,6 +56,9 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy() {
     if (this.defaultQueue) {
       await this.defaultQueue.close();
+    }
+    if (this.analyticsQueue) {
+      await this.analyticsQueue.close();
     }
     if (this.redisConnection) {
       await this.redisConnection.quit();
