@@ -25,6 +25,8 @@
     "@quravo/common": "workspace:*",
     "@quravo/contracts": "workspace:^",
     "@quravo/db": "workspace:*",
+    "@sentry/node": "^10.68.0",
+    "@sentry/profiling-node": "^10.68.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "bullmq": "^5.14.0",
     "cookie-parser": "^1.4.7",

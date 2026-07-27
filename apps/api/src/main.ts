@@ -3,9 +3,25 @@ import { AppModule } from './app.module';
 import { Logger } from 'nestjs-pino';
 import cookieParser from 'cookie-parser';
 import { RedisIoAdapter } from './modules/realtime/realtime.adapter';
+import helmet from 'helmet';
+import * as Sentry from '@sentry/node';
+import { nodeProfilingIntegration } from '@sentry/profiling-node';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
+
+  // Security headers
+  app.use(helmet());
+
+  // Error Tracking Integration
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN || '',
+    integrations: [
+      nodeProfilingIntegration(),
+    ],
+    tracesSampleRate: 1.0, 
+    profilesSampleRate: 1.0,
+  });
 
   // Parse cookies
   app.use(cookieParser());

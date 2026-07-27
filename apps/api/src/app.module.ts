@@ -20,9 +20,21 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { PushModule } from './modules/push/push.module';
 import { AiModule } from './modules/ai/ai.module';
 import { ExportModule } from './modules/export/export.module';
+import { HealthModule } from './modules/health/health.module';
+import { PharmacyModule } from './modules/pharmacy/pharmacy.module';
+import { LaboratoryModule } from './modules/laboratory/laboratory.module';
+import { ProcurementModule } from './modules/procurement/procurement.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
+import { InsuranceModule } from './modules/insurance/insurance.module';
+import { HrModule } from './modules/hr/hr.module';
+import { PayrollModule } from './modules/payroll/payroll.module';
+import { BedManagementModule } from './modules/bed-management/bed-management.module';
 import { CorrelationContextMiddleware } from './common/middleware/correlation-context.middleware';
 import { TenantResolverMiddleware } from './common/middleware/tenant-resolver.middleware';
 import { RequestContext } from '@quravo/common';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 
 @Module({
   imports: [
@@ -62,6 +74,29 @@ import { RequestContext } from '@quravo/common';
     PushModule,
     AiModule,
     ExportModule,
+    HealthModule,
+    PharmacyModule,
+    LaboratoryModule,
+    ProcurementModule,
+    InventoryModule,
+    InsuranceModule,
+    HrModule,
+    PayrollModule,
+    BedManagementModule,
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 100, // 100 requests per minute
+    }]),
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
+    },
   ],
 })
 export class AppModule implements NestModule {

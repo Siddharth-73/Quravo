@@ -1,43 +1,41 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { MODULE_KEY } from '../decorators/module.decorator';
-import { TenantCacheService } from '../../modules/tenant/tenant-cache.service';
-import { ModuleKey } from '@quravo/common';
+import { MODULE_KEY } from '../decorators/require-module.decorator';
+import { db, tenants, eq } from '@quravo/db';
 
 @Injectable()
 export class ModuleGuard implements CanActivate {
-  constructor(
-    private readonly reflector: Reflector,
-    private readonly tenantCacheService: TenantCacheService
-  ) {}
+  constructor(private reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const requiredModule = this.reflector.getAllAndOverride<ModuleKey>(MODULE_KEY, [
+    const requiredModule = this.reflector.getAllAndOverride<string>(MODULE_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
     if (!requiredModule) {
-      return true;
+      return true; // No specific module required
     }
 
     const request = context.switchToHttp().getRequest();
-    const tenantId = request.tenant?.id || request.user?.tenantId;
+    const user = request.user;
 
-    if (!tenantId) {
-      throw new BadRequestException('Cannot verify module enablement: Tenant context missing.');
+    if (!user || !user.tenantId) {
+      throw new ForbiddenException('Tenant information missing from request');
     }
 
-    // Fetch cached enabled modules map from Redis
-    const enabledModules = await this.tenantCacheService.getEnabledModules(tenantId);
+    // In a real production app, you might cache this query using Redis
+    // to avoid hitting the DB on every protected route.
+    const tenantRecord = await db.query.tenants.findFirst({
+      where: eq(tenants.id, user.tenantId),
+    });
 
-    // If module key is explicitly false, reject request
-    const isEnabled = enabledModules[requiredModule] !== false;
+    if (!tenantRecord) {
+      throw new ForbiddenException('Tenant not found');
+    }
 
-    if (!isEnabled) {
-      throw new ForbiddenException(
-        `Feature module '${requiredModule}' is not enabled for your clinic plan tier or subscription.`
-      );
+    if (!tenantRecord.enabledModules || !tenantRecord.enabledModules.includes(requiredModule)) {
+      throw new ForbiddenException(`Your plan does not include access to the '${requiredModule}' module. Please upgrade to use this feature.`);
     }
 
     return true;

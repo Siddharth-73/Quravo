@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, pgEnum, text } from 'drizzle-orm/pg-core';
 
 export const planTierEnum = pgEnum('plan_tier', ['starter', 'growth', 'erp']);
 export const tenantStatusEnum = pgEnum('tenant_status', ['active', 'suspended', 'pending']);
@@ -10,6 +10,7 @@ export const tenants = pgTable('tenants', {
   customDomain: varchar('custom_domain', { length: 255 }).unique(),
   planTier: planTierEnum('plan_tier').default('starter').notNull(),
   status: tenantStatusEnum('status').default('active').notNull(),
+  enabledModules: text('enabled_modules').array().default([]),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
