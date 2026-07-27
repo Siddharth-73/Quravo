@@ -20,7 +20,6 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { PushModule } from './modules/push/push.module';
 import { AiModule } from './modules/ai/ai.module';
 import { ExportModule } from './modules/export/export.module';
-import { HealthModule } from './modules/health/health.module';
 import { PharmacyModule } from './modules/pharmacy/pharmacy.module';
 import { LaboratoryModule } from './modules/laboratory/laboratory.module';
 import { ProcurementModule } from './modules/procurement/procurement.module';
@@ -74,7 +73,6 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
     PushModule,
     AiModule,
     ExportModule,
-    HealthModule,
     PharmacyModule,
     LaboratoryModule,
     ProcurementModule,
@@ -85,7 +83,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
     BedManagementModule,
     ThrottlerModule.forRoot([{
       ttl: 60000,
-      limit: 100, // 100 requests per minute
+      limit: 100,
     }]),
   ],
   providers: [

@@ -32,6 +32,14 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {}
 
+  async addJob(jobName: string, data: any) {
+    return this.emailQueue.add(jobName, data);
+  }
+
+  async addAuditJob(jobName: string, data: any) {
+    return this.auditQueue.add(jobName, data);
+  }
+
   async addExportJob(jobName: string, data: any) {
     return this.exportQueue.add(jobName, data);
   }
@@ -54,14 +62,11 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    if (this.defaultQueue) {
-      await this.defaultQueue.close();
-    }
-    if (this.analyticsQueue) {
-      await this.analyticsQueue.close();
-    }
-    if (this.redisConnection) {
-      await this.redisConnection.quit();
-    }
+    if (this.emailQueue) await this.emailQueue.close();
+    if (this.auditQueue) await this.auditQueue.close();
+    if (this.analyticsQueue) await this.analyticsQueue.close();
+    if (this.aiQueue) await this.aiQueue.close();
+    if (this.exportQueue) await this.exportQueue.close();
+    if (this.redisConnection) await this.redisConnection.quit();
   }
 }

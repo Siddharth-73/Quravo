@@ -1,11 +1,11 @@
 import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { AnalyticsService } from './analytics.service';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../../../common/guards/permissions.guard';
-import { ModuleGuard } from '../../../common/guards/module.guard';
-import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
-import { RequireModule } from '../../../common/decorators/module.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { ModuleGuard } from '../../common/guards/module.guard';
+import { RequirePermissions } from '../../common/decorators/permissions.decorator';
+import { RequireModule } from '../../common/decorators/module.decorator';
 
 @Controller('analytics')
 @UseGuards(JwtAuthGuard, ModuleGuard, PermissionsGuard)

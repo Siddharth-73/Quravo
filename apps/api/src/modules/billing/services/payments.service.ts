@@ -1,22 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { DatabaseService } from '../../database/database.service';
-import { QueueService } from '../../queue/queue.service';
-import { payments, invoices, eq, and } from '@quravo/db';
+import { db, payments, invoices, eq, and } from '@quravo/db';
 import { CreatePaymentDto } from '../dto/create-payment.dto';
 
 @Injectable()
 export class PaymentsService {
-  constructor(
-    private readonly dbService: DatabaseService,
-    private readonly queueService: QueueService,
-    private readonly eventEmitter: EventEmitter2
-  ) {}
+  constructor(private readonly eventEmitter: EventEmitter2) {}
 
   async createPayment(tenantId: string, collectedById: string, dto: CreatePaymentDto) {
-    const db = this.dbService.db;
-    
-    // Validate Invoice
     const [invoice] = await db.select().from(invoices)
       .where(and(eq(invoices.tenantId, tenantId), eq(invoices.id, dto.invoiceId)))
       .limit(1);
@@ -33,7 +24,6 @@ export class PaymentsService {
       throw new BadRequestException(`Payment amount cannot exceed amount due (${currentAmountDue})`);
     }
 
-    // Insert Payment
     const [payment] = await db.insert(payments).values({
       tenantId,
       invoiceId: invoice.id,
@@ -46,9 +36,8 @@ export class PaymentsService {
       collectedById,
     }).returning();
 
-    // Update Invoice
     const newAmountDue = currentAmountDue - paymentAmount;
-    let newStatus = invoice.status;
+    let newStatus: any = invoice.status;
     
     if (newAmountDue <= 0) {
       newStatus = 'paid';
@@ -58,11 +47,10 @@ export class PaymentsService {
 
     await db.update(invoices).set({
       amountDue: newAmountDue.toFixed(2),
-      status: newStatus as any,
+      status: newStatus,
       updatedAt: new Date(),
     }).where(eq(invoices.id, invoice.id));
 
-    // Emit event
     this.eventEmitter.emit('payment.collected', { 
       paymentId: payment.id, 
       invoiceId: invoice.id, 

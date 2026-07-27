@@ -5,10 +5,10 @@ import { createClient } from 'redis';
 import { INestApplication } from '@nestjs/common';
 
 export class RedisIoAdapter extends IoAdapter {
-  private adapterConstructor: ReturnType<typeof createAdapter>;
+  private adapterConstructor!: ReturnType<typeof createAdapter>;
 
   constructor(
-    private readonly app: INestApplication,
+    app: INestApplication,
     private readonly redisUrl: string
   ) {
     super(app);
@@ -19,7 +19,6 @@ export class RedisIoAdapter extends IoAdapter {
     const subClient = pubClient.duplicate();
 
     await Promise.all([pubClient.connect(), subClient.connect()]);
-
     this.adapterConstructor = createAdapter(pubClient, subClient);
   }
 

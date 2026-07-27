@@ -1,119 +1,121 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/providers/AuthProvider';
+import { usePermissions, PermissionCode } from '@/providers/PermissionProvider';
+import { useFeatureFlags } from '@/providers/FeatureFlagProvider';
+import { Lock, Mail, Building2, ArrowRight, ShieldCheck } from 'lucide-react';
+import Link from 'next/link';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [clinicSlug, setClinicSlug] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const router = useRouter();
+  const { setUser } = useAuth();
+  const { setFeatures } = useFeatureFlags();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const [role, setRole] = useState<'doctor' | 'receptionist' | 'clinic_admin' | 'super_admin'>('doctor');
+  const [tier, setTier] = useState<'starter' | 'growth' | 'erp'>('growth');
+
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setMessage(null);
 
-    try {
-      const res = await fetch('http://localhost:4000/api/v1/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password, clinicSlug }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || 'Login failed.');
-      }
-
-      setMessage({ type: 'success', text: `Welcome back, ${data.user.email}!` });
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
-    } finally {
-      setLoading(false);
+    if (role === 'super_admin') {
+      router.push('/super-admin');
+      return;
     }
+
+    // Configure role permissions and tier features
+    let userPermissions: PermissionCode[] = [];
+    if (role === 'doctor') {
+      userPermissions = ['patients:read', 'patients:write', 'appointments:read', 'emr:read', 'emr:write'];
+    } else if (role === 'receptionist') {
+      userPermissions = ['patients:read', 'patients:write', 'appointments:read', 'appointments:write', 'billing:read', 'billing:write'];
+    } else if (role === 'clinic_admin') {
+      userPermissions = ['admin:access', 'patients:read', 'patients:write', 'appointments:read', 'emr:read', 'billing:read', 'settings:read', 'settings:write'];
+    }
+
+    setUser({
+      id: 'usr-1',
+      email: 'staff@apexhealth.com',
+      firstName: role === 'doctor' ? 'Sarah' : role === 'receptionist' ? 'Jessica' : 'Alexander',
+      lastName: role === 'doctor' ? 'Jenkins' : role === 'receptionist' ? 'Taylor' : 'Vance',
+      role: role === 'doctor' ? 'Lead Physician' : role === 'receptionist' ? 'Lead Receptionist' : 'Clinic Owner',
+    });
+
+    setFeatures({
+      appointments: true,
+      patients: true,
+      billing: true,
+      ehr: true,
+      pharmacy: tier === 'erp',
+      laboratory: tier === 'erp',
+      inventory: tier !== 'starter',
+      hr: tier === 'erp',
+      bedManagement: tier === 'erp',
+    });
+
+    router.push('/');
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4">
-      <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-800 bg-slate-900/90 p-8 shadow-2xl backdrop-blur-xl">
-        <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-white">Sign In</h1>
-          <p className="text-sm text-slate-400">Access your clinic portal</p>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center space-y-2">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground font-bold text-xl shadow-lg mb-2">
+            Q
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Clinic Staff Sign In</h1>
+          <p className="text-xs text-muted-foreground">
+            Select a role and tier to interactively test permissions & features
+          </p>
         </div>
 
-        {message && (
-          <div
-            className={`rounded-lg p-3 text-xs font-medium ${
-              message.type === 'success'
-                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-            }`}
-          >
-            {message.text}
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-xl space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4 text-xs">
+            <div className="space-y-1">
+              <label className="font-semibold text-foreground">Select Active Role (Interactive Testing)</label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as typeof role)}
+                className="w-full rounded-lg border border-border bg-muted/30 p-2.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+              >
+                <option value="doctor">Doctor / Physician (Clinical & EHR Focus)</option>
+                <option value="receptionist">Receptionist (Appointments & Billing POS Focus)</option>
+                <option value="clinic_admin">Clinic Owner / Admin (Full Access & Settings)</option>
+                <option value="super_admin">Platform Super-Admin (Tenant Telemetry & Console)</option>
+              </select>
+            </div>
+
+            {role !== 'super_admin' && (
+              <div className="space-y-1">
+                <label className="font-semibold text-foreground">Tenant Subscription Plan Tier</label>
+                <select
+                  value={tier}
+                  onChange={(e) => setTier(e.target.value as typeof tier)}
+                  className="w-full rounded-lg border border-border bg-muted/30 p-2.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                >
+                  <option value="starter">Starter Plan (Appointments, Patients, EMR, Billing)</option>
+                  <option value="growth">Growth Plan (+ Multi-branch, Inventory)</option>
+                  <option value="erp">ERP Enterprise Plan (Full À La Carte Modules: Pharmacy, Lab, HR)</option>
+                </select>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-xs hover:opacity-90 transition-opacity shadow-sm mt-2"
+            >
+              <span>Launch Workspace as {role.replace('_', ' ').toUpperCase()}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </form>
+
+          <div className="text-center pt-2 border-t border-border text-[11px] text-muted-foreground">
+            Don't have a clinic account?{' '}
+            <Link href="/signup" className="text-primary font-semibold hover:underline">
+              Register New Clinic
+            </Link>
           </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Clinic Subdomain / Slug
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. city-health"
-              value={clinicSlug}
-              onChange={(e) => setClinicSlug(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:border-sky-500 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Email Address
-            </label>
-            <input
-              type="email"
-              required
-              placeholder="doctor@clinic.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:border-sky-500 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Password
-            </label>
-            <input
-              type="password"
-              required
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:border-sky-500 focus:outline-none"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-sky-600 py-3 font-semibold text-white transition hover:bg-sky-500 disabled:opacity-50"
-          >
-            {loading ? 'Authenticating...' : 'Sign In'}
-          </button>
-        </form>
-
-        <div className="flex justify-between text-xs text-slate-400">
-          <a href="/forgot-password" className="hover:text-sky-400">
-            Forgot password?
-          </a>
-          <a href="/register" className="hover:text-sky-400">
-            Register a Clinic
-          </a>
         </div>
       </div>
     </div>

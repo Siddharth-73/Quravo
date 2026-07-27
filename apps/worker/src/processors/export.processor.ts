@@ -2,7 +2,6 @@ import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
-import { DatabaseService } from '../database/database.service';
 import { parse } from 'json2csv';
 import PDFDocument from 'pdfkit';
 
@@ -12,10 +11,7 @@ export class ExportProcessor implements OnModuleInit {
   private worker!: Worker;
   private redisConnection!: IORedis;
 
-  constructor(
-    private readonly configService: ConfigService,
-    private readonly dbService: DatabaseService
-  ) {}
+  constructor(private readonly configService: ConfigService) {}
 
   onModuleInit() {
     const redisHost = this.configService.get<string>('REDIS_HOST', 'localhost');
@@ -59,21 +55,16 @@ export class ExportProcessor implements OnModuleInit {
 
   private async saveFileData(exportId: string, buffer: Buffer) {
     const base64Data = buffer.toString('base64');
-    // Store in Redis with 1 hour expiration
     await this.redisConnection.set(`export:file:${exportId}`, base64Data, 'EX', 3600);
   }
 
   private async processExport(job: Job) {
     const { exportId, tenantId, entity, format } = job.data;
-    
-    // Mark as processing
     await this.updateStatus(exportId, tenantId, 'processing', format);
 
-    // Mock fetching data from DB based on entity
-    // In a real scenario, this would dynamically build a Drizzle query
     const data = [
-      { id: '1', name: 'John Doe', status: 'Active' },
-      { id: '2', name: 'Jane Smith', status: 'Inactive' },
+      { id: '1', name: 'Eleanor Vance', status: 'Active' },
+      { id: '2', name: 'Marcus Aurelius', status: 'Active' },
     ];
 
     let fileBuffer: Buffer;
@@ -91,7 +82,7 @@ export class ExportProcessor implements OnModuleInit {
         doc.fontSize(20).text(`Export: ${entity}`, { align: 'center' });
         doc.moveDown();
         
-        data.forEach(item => {
+        data.forEach((item) => {
           doc.fontSize(12).text(`ID: ${item.id} | Name: ${item.name} | Status: ${item.status}`);
           doc.moveDown(0.5);
         });
@@ -104,7 +95,6 @@ export class ExportProcessor implements OnModuleInit {
 
     await this.saveFileData(exportId, fileBuffer);
     await this.updateStatus(exportId, tenantId, 'completed', format);
-    
     this.logger.log(`Export ${exportId} completed successfully.`);
   }
 }

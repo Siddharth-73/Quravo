@@ -1,7 +1,7 @@
 import { Controller, Post, Body, Req, UseGuards, HttpCode } from '@nestjs/common';
 import { Request } from 'express';
 import { QueueService } from '../../queue/queue.service';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('ai')
 @UseGuards(JwtAuthGuard)
@@ -13,7 +13,6 @@ export class AiController {
   async generatePatientSummary(@Req() req: Request, @Body() data: { patientId: string }) {
     const user = (req as any).user;
     
-    // Dispatch to background worker
     await this.queueService.addAiJob('generate-patient-summary', {
       tenantId: user.tenantId,
       userId: user.userId,
@@ -28,7 +27,6 @@ export class AiController {
   async generateConsultationNotes(@Req() req: Request, @Body() data: { appointmentId: string, rawNotes: string }) {
     const user = (req as any).user;
     
-    // Dispatch to background worker
     await this.queueService.addAiJob('generate-consultation-notes', {
       tenantId: user.tenantId,
       userId: user.userId,

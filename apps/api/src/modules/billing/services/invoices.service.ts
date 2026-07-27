@@ -1,20 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { DatabaseService } from '../../database/database.service';
-import { QueueService } from '../../queue/queue.service';
-import { invoices, invoiceItems, eq, and, sql } from '@quravo/db';
+import { db, invoices, invoiceItems, eq, and, sql } from '@quravo/db';
 import { CreateInvoiceDto } from '../dto/create-invoice.dto';
 
 @Injectable()
 export class InvoicesService {
-  constructor(
-    private readonly dbService: DatabaseService,
-    private readonly queueService: QueueService,
-    private readonly eventEmitter: EventEmitter2
-  ) {}
+  constructor(private readonly eventEmitter: EventEmitter2) {}
 
   private async generateInvoiceNumber(tenantId: string): Promise<string> {
-    const db = this.dbService.db;
     const year = new Date().getFullYear();
     const [{ count }] = await db
       .select({ count: sql<number>`count(*)::int` })
@@ -26,13 +19,12 @@ export class InvoicesService {
   }
 
   async createInvoice(tenantId: string, createdById: string, dto: CreateInvoiceDto) {
-    const db = this.dbService.db;
     const invoiceNumber = await this.generateInvoiceNumber(tenantId);
 
     let subtotal = 0;
     let taxAmount = 0;
     
-    const itemsData = dto.items.map(item => {
+    const itemsData = dto.items.map((item) => {
       const itemSubtotal = item.quantity * item.unitPrice;
       const taxRate = item.taxRate || 0;
       const itemTax = itemSubtotal * (taxRate / 100);
@@ -70,7 +62,7 @@ export class InvoicesService {
     }).returning();
     
     const insertedItems = await db.insert(invoiceItems).values(
-      itemsData.map(item => ({
+      itemsData.map((item) => ({
         tenantId,
         invoiceId: invoice.id,
         description: item.description,
@@ -89,7 +81,6 @@ export class InvoicesService {
   }
   
   async getInvoice(tenantId: string, invoiceId: string) {
-    const db = this.dbService.db;
     const [invoice] = await db.select().from(invoices)
       .where(and(eq(invoices.tenantId, tenantId), eq(invoices.id, invoiceId)))
       .limit(1);
@@ -103,7 +94,6 @@ export class InvoicesService {
   }
   
   async listInvoices(tenantId: string) {
-    const db = this.dbService.db;
     return db.select().from(invoices)
       .where(eq(invoices.tenantId, tenantId))
       .orderBy(sql`${invoices.createdAt} DESC`);

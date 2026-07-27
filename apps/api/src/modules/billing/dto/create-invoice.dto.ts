@@ -4,15 +4,15 @@ import { Type } from 'class-transformer';
 export class CreateInvoiceItemDto {
   @IsString()
   @IsNotEmpty()
-  description: string;
+  description!: string;
 
   @IsNumber()
   @Min(1)
-  quantity: number;
+  quantity!: number;
 
   @IsNumber()
   @Min(0)
-  unitPrice: number;
+  unitPrice!: number;
 
   @IsNumber()
   @Min(0)
@@ -31,11 +31,11 @@ export class CreateInvoiceItemDto {
 export class CreateInvoiceDto {
   @IsUUID()
   @IsNotEmpty()
-  branchId: string;
+  branchId!: string;
 
   @IsUUID()
   @IsNotEmpty()
-  patientId: string;
+  patientId!: string;
 
   @IsOptional()
   @IsString()
@@ -48,5 +48,5 @@ export class CreateInvoiceDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateInvoiceItemDto)
-  items: CreateInvoiceItemDto[];
+  items!: CreateInvoiceItemDto[];
 }

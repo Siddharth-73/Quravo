@@ -26,8 +26,10 @@ export function createDatabaseClient(config: DbConfig): { db: Database; client: 
 
 export function getDatabase(): Database {
   if (!dbInstance) {
-    const connectionString = process.env.DATABASE_URL || 'postgres://quravo:quravo_secret@localhost:5432/quravo_db';
+    const connectionString = process.env.DATABASE_URL || 'postgres://quravo:quravo_secret@localhost:5433/quravo_db';
     return createDatabaseClient({ connectionString }).db;
   }
   return dbInstance;
 }
+
+export const db = getDatabase();
