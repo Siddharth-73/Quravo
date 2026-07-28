@@ -20,7 +20,22 @@ export function ThemeProvider({
   initialTheme?: TenantThemeConfig;
 }) {
   const [theme, setTheme] = useState<TenantThemeConfig>(initialTheme);
-  const [mode, setMode] = useState<'light' | 'dark' | 'system'>('light');
+  const [mode, setModeState] = useState<'light' | 'dark' | 'system'>('light');
+
+  // Load saved theme on mount
+  useEffect(() => {
+    const savedMode = localStorage.getItem('theme-mode') as 'light' | 'dark' | 'system';
+    if (savedMode) {
+      setModeState(savedMode);
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      setModeState('dark');
+    }
+  }, []);
+
+  const setMode = (newMode: 'light' | 'dark' | 'system') => {
+    setModeState(newMode);
+    localStorage.setItem('theme-mode', newMode);
+  };
 
   // Inject CSS Variables dynamically into DOM root
   useEffect(() => {

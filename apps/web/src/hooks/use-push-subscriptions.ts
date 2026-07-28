@@ -35,10 +35,27 @@ export function usePushSubscriptions() {
   }, []);
 
   const subscribeUser = async () => {
-    if (!('serviceWorker' in navigator)) return;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      console.warn('Push messaging is not supported.');
+      return;
+    }
 
     try {
+      // 1. Explicitly request notification permission
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        console.warn('Notification permission denied.');
+        return;
+      }
+
+      // 2. Get the service worker registration
       const registration = await navigator.serviceWorker.ready;
+      if (!registration) {
+        console.error('No service worker registered.');
+        return;
+      }
+
+      // 3. Subscribe to PushManager
       const sub = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
@@ -47,7 +64,7 @@ export function usePushSubscriptions() {
       setSubscription(sub);
       setIsSubscribed(true);
 
-      // Send to backend
+      // 4. Send subscription to your backend
       await fetch('/api/v1/push/subscribe', {
         method: 'POST',
         headers: {

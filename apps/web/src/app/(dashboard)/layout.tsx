@@ -9,12 +9,25 @@ import { usePermissions } from '@/providers/PermissionProvider';
 import { useTenant } from '@/providers/TenantProvider';
 import { NavItem } from '@/lib/navigation/sidebar-schema';
 import { Lock, Sparkles, X } from 'lucide-react';
+import { CommandPalette } from '@/components/command-palette/CommandPalette';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { features } = useFeatureFlags();
   const { permissions } = usePermissions();
   const { tenant } = useTenant();
   const [upgradeModalItem, setUpgradeModalItem] = useState<NavItem | null>(null);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  React.useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setIsCommandPaletteOpen((open) => !open);
+      }
+    };
+    document.addEventListener('keydown', down);
+    return () => document.removeEventListener('keydown', down);
+  }, []);
 
   // Compute navigation tree via NavigationService outside components
   const navigation = getSidebar({ features, permissions });
@@ -25,6 +38,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <AppHeader
         tenantName={tenant?.name || 'Apex Health Clinic'}
         logoUrl={tenant?.logoUrl}
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
       />
 
       {/* Main Workspace Layout */}
@@ -95,6 +109,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </div>
       )}
+
+      <CommandPalette 
+        isOpen={isCommandPaletteOpen} 
+        onClose={() => setIsCommandPaletteOpen(false)} 
+      />
     </div>
   );
 }
