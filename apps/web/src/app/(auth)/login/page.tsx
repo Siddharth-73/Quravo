@@ -82,7 +82,7 @@ const getDashboardForRole = (role: string): string => {
     case 'owner':
     case 'admin':
     default:
-      return '/dashboards/admin';
+      return '/dashboard';
   }
 };
 

@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from 'react';
-import { X, User, Phone, Mail, Calendar, Save } from 'lucide-react';
+import { X, User, Phone, Mail, Calendar, Save, Loader2 } from 'lucide-react';
+import { useCreatePatient } from '@/domains/patients/hooks';
 
 interface NewPatientModalProps {
   isOpen: boolean;
@@ -15,25 +16,52 @@ export function NewPatientModal({ isOpen, onClose, onPatientCreated }: NewPatien
   const [age, setAge] = useState('30');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  
+  const createPatientMutation = useCreatePatient();
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName) return;
 
-    const newMrn = `MRN-2026-${Math.floor(100 + Math.random() * 900)}`;
-    onPatientCreated({
-      mrn: newMrn,
-      fullName,
-      gender,
-      age: parseInt(age, 10) || 30,
-      phone: phone || '+1 (555) 000-0000',
-      email: email || `${fullName.toLowerCase().replace(' ', '.')}@example.com`,
-    });
+    // Parse full name into first and last name
+    const names = fullName.trim().split(' ');
+    const firstName = names[0];
+    const lastName = names.length > 1 ? names.slice(1).join(' ') : 'Unknown';
 
-    setFullName('');
-    onClose();
+    // Calculate approx date of birth from age
+    const parsedAge = parseInt(age, 10) || 30;
+    const dobYear = new Date().getFullYear() - parsedAge;
+    const dateOfBirth = `${dobYear}-01-01`;
+
+    try {
+      const savedPatient = await createPatientMutation.mutateAsync({
+        firstName,
+        lastName,
+        dateOfBirth,
+        gender,
+        phone: phone || '+1 (555) 000-0000',
+        email: email || `${firstName.toLowerCase()}@example.com`,
+      } as any);
+
+      onPatientCreated({
+        mrn: savedPatient.mrn,
+        fullName: savedPatient.fullName,
+        gender: savedPatient.gender,
+        age: parsedAge,
+        phone: savedPatient.phone,
+        email: savedPatient.email,
+      });
+
+      setFullName('');
+      setPhone('');
+      setEmail('');
+      setAge('30');
+      onClose();
+    } catch (err: any) {
+      alert(err.message || 'Failed to create patient.');
+    }
   };
 
   return (
@@ -119,10 +147,20 @@ export function NewPatientModal({ isOpen, onClose, onPatientCreated }: NewPatien
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-opacity shadow-sm flex items-center gap-1.5"
+              disabled={createPatientMutation.isPending}
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-opacity shadow-sm flex items-center gap-1.5 disabled:opacity-50"
             >
-              <Save className="w-3.5 h-3.5" />
-              <span>Register Patient</span>
+              {createPatientMutation.isPending ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Registering...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Register Patient</span>
+                </>
+              )}
             </button>
           </div>
         </form>

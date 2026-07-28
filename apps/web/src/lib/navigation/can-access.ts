@@ -23,6 +23,7 @@ export function canAccessItem({
   const hasPermissionAccess =
     !requiredPermissions ||
     requiredPermissions.length === 0 ||
+    userPermissions.includes('*') ||
     userPermissions.includes('admin:access') ||
     requiredPermissions.some((perm) => userPermissions.includes(perm));
 

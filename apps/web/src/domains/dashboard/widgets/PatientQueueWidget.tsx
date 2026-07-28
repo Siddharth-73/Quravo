@@ -80,35 +80,41 @@ export function PatientQueueWidget() {
           </span>
         </div>
 
-        <div className="space-y-2">
-          {data?.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 transition-colors"
-            >
-              <div>
-                <div className="text-xs font-medium text-foreground">{item.patientName}</div>
-                <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> Wait: {item.waitTime}
+        {data?.length === 0 ? (
+          <div className="py-8 text-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
+            No patients currently in waiting room.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {data?.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 transition-colors"
+              >
+                <div>
+                  <div className="text-xs font-medium text-foreground">{item.patientName}</div>
+                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> Wait: {item.waitTime}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${triageColors[item.triageCategory]}`}>
+                    {item.triageCategory}
                   </span>
+                  <button
+                    className="p-1 rounded text-primary hover:bg-primary/10 transition-colors"
+                    title="Call Patient"
+                  >
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
-
-              <div className="flex items-center gap-2">
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${triageColors[item.triageCategory]}`}>
-                  {item.triageCategory}
-                </span>
-                <button
-                  className="p-1 rounded text-primary hover:bg-primary/10 transition-colors"
-                  title="Call Patient"
-                >
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

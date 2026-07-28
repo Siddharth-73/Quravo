@@ -5,8 +5,15 @@ import { Calendar as CalendarIcon, Clock, Plus, Filter, User, CheckCircle2, XCir
 import { useAppointments } from '@/domains/appointments/hooks';
 import { NewAppointmentModal } from '@/components/modals/NewAppointmentModal';
 
+function getLocalDateString(d: Date = new Date()): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function AppointmentsPage() {
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(() => getLocalDateString());
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [isApptModalOpen, setIsApptModalOpen] = useState(false);
 

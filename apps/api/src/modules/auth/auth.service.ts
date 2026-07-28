@@ -257,18 +257,23 @@ export class AuthService {
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
 
     const rawRefreshToken = randomUUID();
-    const tokenHash = this.hashToken(rawRefreshToken);
-    const familyId = existingFamilyId || randomUUID();
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-    await db.insert(refreshTokens).values({
-      tokenHash,
-      familyId,
-      userId,
-      tenantId,
-      isRevoked: false,
-      expiresAt,
-    });
+    // Super admin uses a synthetic tenantId that doesn't exist in the tenants table,
+    // so skip the refresh token DB insert to avoid FK constraint violations.
+    if (role !== 'super_admin') {
+      const tokenHash = this.hashToken(rawRefreshToken);
+      const familyId = existingFamilyId || randomUUID();
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+      await db.insert(refreshTokens).values({
+        tokenHash,
+        familyId,
+        userId,
+        tenantId,
+        isRevoked: false,
+        expiresAt,
+      });
+    }
 
     return {
       accessToken,
@@ -380,7 +385,6 @@ export class AuthService {
         id: tenants.id,
         name: tenants.name,
         slug: tenants.slug,
-        logoUrl: tenants.logoUrl,
         planTier: tenants.planTier,
       })
       .from(tenants)
@@ -427,7 +431,7 @@ export class AuthService {
         id: tenant.id,
         name: tenant.name,
         slug: tenant.slug,
-        logoUrl: tenant.logoUrl,
+        logoUrl: undefined,
         planTier: tenant.planTier,
       },
       permissions: rawPermissions,

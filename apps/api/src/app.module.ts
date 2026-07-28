@@ -87,7 +87,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
     PatientPlatformModule,
     ThrottlerModule.forRoot([{
       ttl: 60000,
-      limit: 100,
+      limit: 300,
     }]),
   ],
   providers: [

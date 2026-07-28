@@ -9,7 +9,6 @@ import { useFeatureFlags } from '@/providers/FeatureFlagProvider';
 import { usePermissions } from '@/providers/PermissionProvider';
 import { useTenant } from '@/providers/TenantProvider';
 import { useAuth } from '@/providers/AuthProvider';
-import { apiFetch } from '@/lib/api/client';
 import { NavItem } from '@/lib/navigation/sidebar-schema';
 import { Lock, Sparkles, X, Loader2 } from 'lucide-react';
 import { CommandPalette } from '@/components/command-palette/CommandPalette';
@@ -28,17 +27,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     async function restoreSession() {
       try {
-        const session = await apiFetch<any>('/auth/session');
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+        const res = await fetch(`${API_BASE}/auth/session`, {
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (res.status === 401) {
+          // No valid session — redirect to login
+          setUser(null);
+          router.push('/login');
+          return;
+        }
+
+        if (!res.ok) {
+          // Transient error (429, 500, etc.) — don't throw user out
+          // Just stop the loading spinner and let them use existing context
+          setLoading(false);
+          return;
+        }
+
+        const session = await res.json();
         setUser(session.user);
         setTenant(session.tenant);
         setPermissions(session.permissions);
         setFeatures(session.features);
         setLoading(false);
-      } catch (err) {
-        console.warn('Session restoration failed:', err);
-        // Clear auth contexts
-        setUser(null);
-        router.push('/login');
+      } catch {
+        // Network error or server down — don't kick out, stop loading
+        setLoading(false);
       }
     }
     restoreSession();

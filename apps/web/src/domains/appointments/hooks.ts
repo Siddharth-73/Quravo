@@ -11,13 +11,22 @@ export interface Appointment {
   status: 'Scheduled' | 'Checked-In' | 'Completed' | 'Cancelled';
 }
 
+function getLocalDateString(d: Date = new Date()): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function useAppointments(date?: string) {
   return useQuery({
     queryKey: dashboardKeys.todaySchedule(date),
     queryFn: async () => {
       try {
-        const targetDate = date || new Date().toISOString().split('T')[0];
-        const list = await apiFetch<any[]>(`/appointments?startDate=${targetDate}T00:00:00.000Z&endDate=${targetDate}T23:59:59.000Z`);
+        const targetDate = date || getLocalDateString();
+        const startIso = new Date(`${targetDate}T00:00:00`).toISOString();
+        const endIso = new Date(`${targetDate}T23:59:59`).toISOString();
+        const list = await apiFetch<any[]>(`/appointments?startDate=${startIso}&endDate=${endIso}`);
         return list.map(apt => {
           const timeStr = new Date(apt.startTime).toLocaleTimeString('en-US', {
             hour: '2-digit',
@@ -37,12 +46,8 @@ export function useAppointments(date?: string) {
           } as Appointment;
         });
       } catch (err) {
-        console.warn('Appointments fetch failed, using fallbacks:', err);
-        return [
-          { id: '1', time: '09:00 AM', patientName: 'Eleanor Vance', doctorName: 'Dr. Sarah Jenkins', type: 'General Checkup', status: 'Checked-In' },
-          { id: '2', time: '10:00 AM', patientName: 'Marcus Aurelius', doctorName: 'Dr. Sarah Jenkins', type: 'Cardiology Review', status: 'Scheduled' },
-          { id: '3', time: '11:30 AM', patientName: 'Sophia Lin', doctorName: 'Dr. Robert Chen', type: 'Blood Test Follow-up', status: 'Completed' },
-        ] as Appointment[];
+        console.warn('Appointments fetch failed:', err);
+        return [] as Appointment[];
       }
     },
   });

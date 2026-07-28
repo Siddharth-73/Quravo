@@ -1,4 +1,5 @@
 import { Controller, Post, Get, Put, Body, Res, Req, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -48,6 +49,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @SkipThrottle()
   @HttpCode(HttpStatus.OK)
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const refreshToken = req.cookies?.['quravo_refresh_token'] || req.body?.refreshToken;
@@ -83,12 +85,14 @@ export class AuthController {
   }
 
   @Get('me')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard)
   async getCurrentUser(@Req() req: Request) {
     return { user: (req as any).user };
   }
 
   @Get('session')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard)
   async getSession(@Req() req: Request) {
     const userId = (req as any).user.userId;

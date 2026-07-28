@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Put, Body, Param, Req, UseGuards } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { RbacService } from './rbac.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -6,6 +7,7 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 
 @Controller('rbac')
+@SkipThrottle()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class RbacController {
   constructor(private readonly rbacService: RbacService) {}

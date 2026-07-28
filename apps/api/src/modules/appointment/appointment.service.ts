@@ -201,7 +201,7 @@ export class AppointmentService {
       conditions = and(conditions, gte(appointments.startTime, new Date(startDate)))!;
     }
     if (endDate) {
-      conditions = and(conditions, lte(appointments.endTime, new Date(endDate)))!;
+      conditions = and(conditions, lte(appointments.startTime, new Date(endDate)))!;
     }
 
     return db

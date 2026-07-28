@@ -15,10 +15,19 @@ interface AppointmentSlot {
   doctorName: string;
 }
 
+function getLocalDateString(d: Date = new Date()): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 async function fetchTodaySchedule(): Promise<AppointmentSlot[]> {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    const list = await apiFetch<any[]>(`/appointments?startDate=${today}T00:00:00.000Z&endDate=${today}T23:59:59.000Z`);
+    const todayStr = getLocalDateString();
+    const startIso = new Date(`${todayStr}T00:00:00`).toISOString();
+    const endIso = new Date(`${todayStr}T23:59:59`).toISOString();
+    const list = await apiFetch<any[]>(`/appointments?startDate=${startIso}&endDate=${endIso}`);
     return list.map(apt => {
       const timeStr = new Date(apt.startTime).toLocaleTimeString('en-US', {
         hour: '2-digit',
@@ -90,29 +99,35 @@ export function TodayScheduleWidget() {
           </span>
         </div>
 
-        <div className="space-y-2.5">
-          {data?.map((apt) => (
-            <div
-              key={apt.id}
-              className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1 text-xs font-mono font-medium text-muted-foreground w-20">
-                  <Clock className="w-3 h-3" />
-                  <span>{apt.time}</span>
+        {data?.length === 0 ? (
+          <div className="py-12 text-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
+            No appointments scheduled for today.
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {data?.map((apt) => (
+              <div
+                key={apt.id}
+                className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1 text-xs font-mono font-medium text-muted-foreground w-20">
+                    <Clock className="w-3 h-3" />
+                    <span>{apt.time}</span>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-foreground">{apt.patientName}</div>
+                    <div className="text-[11px] text-muted-foreground">{apt.reason}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-xs font-medium text-foreground">{apt.patientName}</div>
-                  <div className="text-[11px] text-muted-foreground">{apt.reason}</div>
-                </div>
-              </div>
 
-              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border capitalize ${statusBadges[apt.status]}`}>
-                {apt.status.replace('_', ' ')}
-              </span>
-            </div>
-          ))}
-        </div>
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border capitalize ${statusBadges[apt.status] || 'bg-muted text-muted-foreground'}`}>
+                  {(apt.status || 'scheduled').replace('_', ' ')}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
