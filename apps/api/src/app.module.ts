@@ -8,6 +8,7 @@ import { HealthModule } from './health/health.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { TenantModule } from './modules/tenant/tenant.module';
+import { SuperAdminModule } from './modules/super-admin/super-admin.module';
 import { RbacModule } from './modules/rbac/rbac.module';
 import { ClinicModule } from './modules/clinic/clinic.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
@@ -62,6 +63,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
     MetricsModule,
     AuthModule,
     TenantModule,
+    SuperAdminModule,
     RbacModule,
     ClinicModule,
     SubscriptionModule,

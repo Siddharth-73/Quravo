@@ -8,7 +8,7 @@ import { RbacModule } from '../rbac/rbac.module';
 import { FeatureFlagGuard } from '../../common/guards/feature-flag.guard';
 
 @Module({
-  imports: [TenantModule, forwardRef(() => RbacModule)],
+  imports: [forwardRef(() => TenantModule), forwardRef(() => RbacModule)],
   controllers: [SubscriptionController],
   providers: [SubscriptionService, MockBillingProvider, SubscriptionEventListener, FeatureFlagGuard],
   exports: [SubscriptionService, MockBillingProvider, FeatureFlagGuard],
