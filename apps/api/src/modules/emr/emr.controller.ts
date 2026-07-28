@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Req, Query, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { EmrService } from './emr.service';
 import { CreateEncounterDto, UpdateEncounterDto } from './dto/create-encounter.dto';
@@ -14,6 +14,17 @@ import { RequireModule } from '../../common/decorators/module.decorator';
 @RequireModule('emr')
 export class EmrController {
   constructor(private readonly emrService: EmrService) {}
+
+  @Get('encounters')
+  @RequirePermissions('emr:read')
+  async getEncounters(@Req() req: Request, @Query('patientId') patientId?: string) {
+    const tenantId = (req as any).user.tenantId;
+    const userId = (req as any).user.userId;
+    if (patientId) {
+      return this.emrService.getPatientEncounters(tenantId, userId, patientId);
+    }
+    return this.emrService.getAllEncounters(tenantId);
+  }
 
   @Post('encounters')
   @RequirePermissions('emr:write')

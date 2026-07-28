@@ -36,10 +36,18 @@ export function usePatients(filters: Record<string, unknown> = {}) {
   return useQuery({
     queryKey: patientKeys.list(filters),
     queryFn: async () => {
-      // API call with fallback mock data for smooth offline dev
       try {
-        return await apiFetch<Patient[]>('/patients');
-      } catch {
+        const res = await apiFetch<any>('/patients');
+        const list = Array.isArray(res) ? res : res.items || [];
+        return list.map((p: any) => ({
+          ...p,
+          fullName: p.fullName || `${p.firstName || ''} ${p.lastName || ''}`.trim(),
+          mrn: p.mrn || p.patientNumber,
+          age: p.age || (p.dateOfBirth ? new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear() : 30),
+          status: p.status === 'active' ? 'Active' : 'Inactive',
+        })) as Patient[];
+      } catch (err) {
+        console.warn('Patients fetch failed, using fallback:', err);
         return [
           { id: 'p-101', mrn: 'MRN-2026-001', fullName: 'Eleanor Vance', gender: 'Female', age: 34, phone: '+1 (555) 234-5678', email: 'eleanor.vance@example.com', status: 'Active' },
           { id: 'p-102', mrn: 'MRN-2026-002', fullName: 'Marcus Aurelius', gender: 'Male', age: 52, phone: '+1 (555) 876-5432', email: 'marcus.aurelius@example.com', status: 'Active' },

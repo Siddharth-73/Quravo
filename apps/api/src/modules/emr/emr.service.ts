@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { AuditService } from '../../common/services/audit.service';
-import { emrEncounters, prescriptions, prescriptionItems, emrReports, patientTimeline, eq, and, sql } from '@quravo/db';
+import { emrEncounters, prescriptions, prescriptionItems, emrReports, patientTimeline, patients, eq, and, sql } from '@quravo/db';
 import { CreateEncounterDto, UpdateEncounterDto } from './dto/create-encounter.dto';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 
@@ -220,8 +220,23 @@ export class EmrService {
     const db = this.dbService.db;
 
     const items = await db
-      .select()
+      .select({
+        id: emrEncounters.id,
+        encounterNumber: emrEncounters.encounterNumber,
+        encounterDate: emrEncounters.encounterDate,
+        chiefComplaint: emrEncounters.chiefComplaint,
+        subjectiveNotes: emrEncounters.subjectiveNotes,
+        objectiveNotes: emrEncounters.objectiveNotes,
+        assessmentDiagnosis: emrEncounters.assessmentDiagnosis,
+        treatmentPlan: emrEncounters.treatmentPlan,
+        vitals: emrEncounters.vitals,
+        status: emrEncounters.status,
+        patientId: emrEncounters.patientId,
+        patientFirstName: patients.firstName,
+        patientLastName: patients.lastName,
+      })
       .from(emrEncounters)
+      .leftJoin(patients, eq(emrEncounters.patientId, patients.id))
       .where(and(eq(emrEncounters.tenantId, tenantId), eq(emrEncounters.patientId, patientId)))
       .orderBy(sql`${emrEncounters.createdAt} DESC`);
 
@@ -234,5 +249,30 @@ export class EmrService {
     });
 
     return items;
+  }
+
+  async getAllEncounters(tenantId: string) {
+    const db = this.dbService.db;
+
+    return db
+      .select({
+        id: emrEncounters.id,
+        encounterNumber: emrEncounters.encounterNumber,
+        encounterDate: emrEncounters.encounterDate,
+        chiefComplaint: emrEncounters.chiefComplaint,
+        subjectiveNotes: emrEncounters.subjectiveNotes,
+        objectiveNotes: emrEncounters.objectiveNotes,
+        assessmentDiagnosis: emrEncounters.assessmentDiagnosis,
+        treatmentPlan: emrEncounters.treatmentPlan,
+        vitals: emrEncounters.vitals,
+        status: emrEncounters.status,
+        patientId: emrEncounters.patientId,
+        patientFirstName: patients.firstName,
+        patientLastName: patients.lastName,
+      })
+      .from(emrEncounters)
+      .leftJoin(patients, eq(emrEncounters.patientId, patients.id))
+      .where(eq(emrEncounters.tenantId, tenantId))
+      .orderBy(sql`${emrEncounters.createdAt} DESC`);
   }
 }

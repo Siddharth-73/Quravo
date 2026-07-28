@@ -36,7 +36,18 @@ export function useEncounters() {
   return useQuery({
     queryKey: emrKeys.encounters(),
     queryFn: async () => {
-      return await apiFetch<Encounter[]>('/emr/encounters');
+      try {
+        const res = await apiFetch<any[]>('/emr/encounters');
+        return res.map(enc => ({
+          ...enc,
+          date: enc.encounterDate || enc.createdAt,
+          patientName: enc.patientFirstName ? `${enc.patientFirstName} ${enc.patientLastName}` : 'Unknown Patient',
+          status: enc.status === 'finalized' ? 'Final' : enc.status === 'draft' ? 'Draft' : 'Signed'
+        })) as Encounter[];
+      } catch (err) {
+        console.warn('Encounters fetch failed, using mock fallback:', err);
+        return [];
+      }
     },
   });
 }
@@ -45,7 +56,18 @@ export function usePatientEncounters(patientId: string) {
   return useQuery({
     queryKey: emrKeys.patientEncounters(patientId),
     queryFn: async () => {
-      return await apiFetch<Encounter[]>(`/emr/encounters?patientId=${patientId}`);
+      try {
+        const res = await apiFetch<any[]>(`/emr/encounters?patientId=${patientId}`);
+        return res.map(enc => ({
+          ...enc,
+          date: enc.encounterDate || enc.createdAt,
+          patientName: enc.patientFirstName ? `${enc.patientFirstName} ${enc.patientLastName}` : 'Unknown Patient',
+          status: enc.status === 'finalized' ? 'Final' : enc.status === 'draft' ? 'Draft' : 'Signed'
+        })) as Encounter[];
+      } catch (err) {
+        console.warn('Patient encounters fetch failed, returning empty:', err);
+        return [];
+      }
     },
     enabled: !!patientId,
   });
@@ -55,7 +77,16 @@ export function useEncounter(id: string) {
   return useQuery({
     queryKey: emrKeys.encounter(id),
     queryFn: async () => {
-      return await apiFetch<Encounter>(`/emr/encounters/${id}`);
+      const enc = await apiFetch<any>(`/emr/encounters/${id}`);
+      return {
+        ...enc,
+        date: enc.encounterDate || enc.createdAt,
+        subjective: enc.subjectiveNotes || '',
+        objective: enc.objectiveNotes || '',
+        assessment: Array.isArray(enc.assessmentDiagnosis) ? enc.assessmentDiagnosis.join(', ') : enc.assessmentDiagnosis || '',
+        plan: enc.treatmentPlan || '',
+        status: enc.status === 'finalized' ? 'Final' : enc.status === 'draft' ? 'Draft' : 'Signed'
+      } as Encounter;
     },
     enabled: !!id,
   });
@@ -65,9 +96,19 @@ export function useCreateEncounter() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: Partial<Encounter>) => {
+      const mappedData = {
+        patientId: data.patientId,
+        appointmentId: (data as any).appointmentId,
+        chiefComplaint: data.chiefComplaint || 'Clinical Consultation',
+        subjectiveNotes: data.subjective,
+        objectiveNotes: data.objective,
+        assessmentDiagnosis: data.assessment ? data.assessment.split(',').map(s => s.trim()) : [],
+        treatmentPlan: data.plan,
+        vitals: data.vitals || {}
+      };
       return await apiFetch<Encounter>('/emr/encounters', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify(mappedData),
       });
     },
     onSuccess: (data) => {
@@ -83,9 +124,17 @@ export function useUpdateEncounter() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Encounter> }) => {
+      const mappedData = {
+        chiefComplaint: data.chiefComplaint,
+        subjectiveNotes: data.subjective,
+        objectiveNotes: data.objective,
+        assessmentDiagnosis: data.assessment ? data.assessment.split(',').map(s => s.trim()) : [],
+        treatmentPlan: data.plan,
+        vitals: data.vitals
+      };
       return await apiFetch<Encounter>(`/emr/encounters/${id}`, {
         method: 'PUT',
-        body: JSON.stringify(data),
+        body: JSON.stringify(mappedData),
       });
     },
     onSuccess: (data) => {
@@ -103,7 +152,7 @@ export function useFinalizeEncounter() {
   return useMutation({
     mutationFn: async (id: string) => {
       return await apiFetch<Encounter>(`/emr/encounters/${id}/finalize`, {
-        method: 'POST',
+        method: 'PUT',
       });
     },
     onSuccess: (data) => {
