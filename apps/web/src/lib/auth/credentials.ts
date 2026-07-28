@@ -14,7 +14,7 @@ export interface CredentialUser {
   isImmutable?: boolean;
 }
 
-const fullFeatures: TenantFeaturesMap = {
+export const fullFeatures: TenantFeaturesMap = {
   appointments: true,
   patients: true,
   billing: true,

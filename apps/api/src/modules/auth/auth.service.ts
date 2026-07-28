@@ -124,6 +124,19 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password credentials.');
     }
 
+    // Special bypass for Platform Super-Admin
+    if (user.email === 'admin@quravo.com') {
+      return this.generateAuthSession(
+        user.id,
+        user.email,
+        '00000000-0000-0000-0000-000000000000',
+        'super_admin',
+        undefined,
+        user.firstName,
+        user.lastName
+      );
+    }
+
     // Find Tenant Membership
     let membership;
     if (dto.clinicSlug) {
@@ -150,7 +163,15 @@ export class AuthService {
     }
 
     // Generate Session Tokens with Refresh Token Rotation
-    return this.generateAuthSession(user.id, user.email, membership.tenantId, membership.role);
+    return this.generateAuthSession(
+      user.id,
+      user.email,
+      membership.tenantId,
+      membership.role,
+      undefined,
+      user.firstName,
+      user.lastName
+    );
   }
 
   async refreshToken(rawRefreshToken: string) {
@@ -183,18 +204,43 @@ export class AuthService {
 
     // Fetch user & membership
     const [user] = await db.select().from(users).where(eq(users.id, tokenRecord.userId)).limit(1);
+    if (!user) {
+      throw new UnauthorizedException('User no longer active.');
+    }
+
+    // Special bypass for Platform Super-Admin
+    if (user.email === 'admin@quravo.com') {
+      return this.generateAuthSession(
+        user.id,
+        user.email,
+        '00000000-0000-0000-0000-000000000000',
+        'super_admin',
+        tokenRecord.familyId,
+        user.firstName,
+        user.lastName
+      );
+    }
+
     const [membership] = await db
       .select()
       .from(tenantMemberships)
       .where(and(eq(tenantMemberships.userId, tokenRecord.userId), eq(tenantMemberships.tenantId, tokenRecord.tenantId)))
       .limit(1);
 
-    if (!user || !membership) {
-      throw new UnauthorizedException('User or membership no longer active.');
+    if (!membership) {
+      throw new UnauthorizedException('User membership no longer active.');
     }
 
     // Rotate and generate new token pair keeping familyId intact
-    return this.generateAuthSession(user.id, user.email, membership.tenantId, membership.role, tokenRecord.familyId);
+    return this.generateAuthSession(
+      user.id,
+      user.email,
+      membership.tenantId,
+      membership.role,
+      tokenRecord.familyId,
+      user.firstName,
+      user.lastName
+    );
   }
 
   private async generateAuthSession(
@@ -202,7 +248,9 @@ export class AuthService {
     email: string,
     tenantId: string,
     role: string,
-    existingFamilyId?: string
+    existingFamilyId?: string,
+    firstName?: string,
+    lastName?: string
   ) {
     const db = this.dbService.db;
     const payload = { sub: userId, email, tenantId, role };
@@ -225,7 +273,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken: rawRefreshToken,
-      user: { id: userId, email, tenantId, role },
+      user: { id: userId, email, tenantId, role, firstName, lastName },
     };
   }
 

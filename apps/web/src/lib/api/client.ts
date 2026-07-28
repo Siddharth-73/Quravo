@@ -23,6 +23,7 @@ export async function apiFetch<T>(endpoint: string, options: ApiFetchOptions = {
 
   const config: RequestInit = {
     method: options.body ? 'POST' : 'GET',
+    credentials: 'include',
     ...customConfig,
     headers: reqHeaders,
   };

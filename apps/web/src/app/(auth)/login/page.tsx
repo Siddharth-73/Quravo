@@ -3,11 +3,88 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
-import { usePermissions } from '@/providers/PermissionProvider';
+import { usePermissions, PermissionCode } from '@/providers/PermissionProvider';
 import { useFeatureFlags } from '@/providers/FeatureFlagProvider';
-import { DEMO_CREDENTIALS, CredentialUser } from '@/lib/auth/credentials';
+import { DEMO_CREDENTIALS, CredentialUser, fullFeatures } from '@/lib/auth/credentials';
 import { Lock, Mail, Building2, ArrowRight, AlertCircle, ShieldCheck, Key, Check } from 'lucide-react';
 import Link from 'next/link';
+import { apiFetch } from '@/lib/api/client';
+
+interface LoginResponse {
+  message: string;
+  accessToken: string;
+  user: {
+    id: string;
+    email: string;
+    tenantId: string;
+    role: string;
+    firstName?: string;
+    lastName?: string;
+  };
+}
+
+const ALL_PERMISSIONS: PermissionCode[] = [
+  'patients:read',
+  'patients:write',
+  'patients:delete',
+  'appointments:read',
+  'appointments:write',
+  'emr:read',
+  'emr:write',
+  'billing:read',
+  'billing:write',
+  'admin:access',
+  'settings:read',
+  'settings:write',
+];
+
+function expandPermissions(rawPermissions: string[]): PermissionCode[] {
+  const result = new Set<PermissionCode>();
+  for (const perm of rawPermissions) {
+    if (perm === '*') {
+      ALL_PERMISSIONS.forEach((p) => result.add(p));
+    } else if (perm.endsWith(':*')) {
+      const prefix = perm.slice(0, -2);
+      ALL_PERMISSIONS.forEach((p) => {
+        if (p.startsWith(prefix + ':')) {
+          result.add(p);
+        }
+      });
+      if (prefix === 'emr' || prefix === 'prescriptions') {
+        result.add('emr:read');
+        result.add('emr:write');
+      }
+    } else {
+      if (perm === 'vitals:write') {
+        result.add('emr:write');
+      } else if (ALL_PERMISSIONS.includes(perm as PermissionCode)) {
+        result.add(perm as PermissionCode);
+      }
+    }
+  }
+  return Array.from(result);
+}
+
+const getDashboardForRole = (role: string): string => {
+  switch (role) {
+    case 'super_admin':
+      return '/super-admin';
+    case 'doctor':
+      return '/dashboards/doctor';
+    case 'nurse':
+      return '/dashboards/nurse';
+    case 'receptionist':
+      return '/dashboards/receptionist';
+    case 'pharmacist':
+      return '/dashboards/pharmacist';
+    case 'patient':
+      return '/dashboards/patient';
+    case 'owner':
+    case 'admin':
+    default:
+      return '/dashboards/admin';
+  }
+};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,41 +101,78 @@ export default function LoginPage() {
   const fillCredentials = (cred: CredentialUser) => {
     setEmail(cred.email);
     setPassword(cred.password);
+    if (cred.roleKey !== 'super_admin') {
+      setSubdomain('apexhealth');
+    }
     setErrorMessage('');
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     setLoading(true);
 
-    setTimeout(() => {
-      // Validate credentials against registry
-      const matched = DEMO_CREDENTIALS.find(
-        (c) => c.email.toLowerCase() === email.toLowerCase() && c.password === password
-      );
-
-      if (!matched) {
-        setErrorMessage('Invalid email address or password. Try a demo quick-fill option below.');
-        setLoading(false);
-        return;
-      }
-
-      // Update Auth context, permissions, and feature flags
-      setUser({
-        id: `usr-${matched.roleKey}`,
-        email: matched.email,
-        firstName: matched.firstName,
-        lastName: matched.lastName,
-        role: matched.roleTitle,
+    try {
+      // 1. Attempt dynamic authentication against NestJS API
+      const authData = await apiFetch<LoginResponse>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          email,
+          password,
+          clinicSlug: subdomain,
+        }),
       });
 
-      setPermissions(matched.permissions);
-      setFeatures(matched.features);
+      let clientPermissions: PermissionCode[] = [];
+      let clientFeatures = fullFeatures;
 
-      // Redirect to role-specific dashboard
-      router.push(matched.targetDashboard);
-    }, 400);
+      if (authData.user.role === 'super_admin') {
+        clientPermissions = ['admin:access'];
+      } else {
+        // 2. Fetch roles and permissions for this tenant
+        const rolesData = await apiFetch<{ name: string; permissions: string[] }[]>('/rbac/roles', {
+          token: authData.accessToken,
+          headers: {
+            'X-Tenant-ID': authData.user.tenantId,
+          },
+        });
+
+        // 3. Fetch enabled feature modules
+        const modulesData = await apiFetch<Record<string, boolean>>('/rbac/modules', {
+          token: authData.accessToken,
+          headers: {
+            'X-Tenant-ID': authData.user.tenantId,
+          },
+        });
+
+        // Map dynamic backend permissions & modules to client formats
+        const userRole = rolesData.find((r) => r.name === authData.user.role);
+        const rawPermissions = userRole ? userRole.permissions : [];
+        clientPermissions = expandPermissions(rawPermissions);
+        clientFeatures = { ...fullFeatures, ...modulesData };
+      }
+
+      // 4. Set frontend contexts
+      setUser({
+        id: authData.user.id,
+        email: authData.user.email,
+        firstName: authData.user.firstName || 'User',
+        lastName: authData.user.lastName || '',
+        role: authData.user.role,
+      });
+
+      setPermissions(clientPermissions);
+      setFeatures(clientFeatures);
+
+      // Redirect to correct dashboard
+      const targetDashboard = getDashboardForRole(authData.user.role);
+      router.push(targetDashboard);
+    } catch (apiError: any) {
+      setErrorMessage(
+        apiError.message || 'Invalid email address or password. Try a demo quick-fill option below.'
+      );
+      setLoading(false);
+    }
   };
 
   return (
