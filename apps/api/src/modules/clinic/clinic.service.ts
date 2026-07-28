@@ -170,7 +170,25 @@ export class ClinicService {
     return this.getWorkingHours(tenantId, branchId);
   }
 
-  // --- STAFF INVITATIONS ---
+  // --- STAFF & INVITATIONS ---
+  async getStaff(tenantId: string) {
+    const db = this.dbService.db;
+    const staff = await db
+      .select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        role: tenantMemberships.role,
+        status: tenantMemberships.status,
+      })
+      .from(tenantMemberships)
+      .innerJoin(users, eq(tenantMemberships.userId, users.id))
+      .where(eq(tenantMemberships.tenantId, tenantId));
+    
+    return staff;
+  }
+
   async inviteStaff(tenantId: string, invitedByUserId: string, dto: InviteStaffDto) {
     const db = this.dbService.db;
 

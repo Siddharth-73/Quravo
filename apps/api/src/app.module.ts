@@ -28,6 +28,7 @@ import { InsuranceModule } from './modules/insurance/insurance.module';
 import { HrModule } from './modules/hr/hr.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
 import { BedManagementModule } from './modules/bed-management/bed-management.module';
+import { PatientPlatformModule } from './modules/patient-platform/patient-platform.module';
 import { CorrelationContextMiddleware } from './common/middleware/correlation-context.middleware';
 import { TenantResolverMiddleware } from './common/middleware/tenant-resolver.middleware';
 import { RequestContext } from '@quravo/common';
@@ -81,6 +82,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
     HrModule,
     PayrollModule,
     BedManagementModule,
+    PatientPlatformModule,
     ThrottlerModule.forRoot([{
       ttl: 60000,
       limit: 100,

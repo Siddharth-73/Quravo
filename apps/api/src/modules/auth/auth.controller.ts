@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Res, Req, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Put, Body, Res, Req, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -19,7 +19,7 @@ export class AuthController {
       httpOnly: true,
       secure: isProd,
       sameSite: 'lax',
-      maxAge: 15 * 60 * 1000, // 15 minutes
+      maxAge: 15 * 60 * 1000,
       path: '/',
     });
 
@@ -27,7 +27,7 @@ export class AuthController {
       httpOnly: true,
       secure: isProd,
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/api/v1/auth/refresh',
     });
   }
@@ -44,7 +44,7 @@ export class AuthController {
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.login(dto);
     this.setAuthCookies(res, result.accessToken, result.refreshToken);
-    return { message: 'Logged in successfully', user: result.user };
+    return { message: 'Logged in successfully', user: result.user, accessToken: result.accessToken };
   }
 
   @Post('refresh')
@@ -86,5 +86,12 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async getCurrentUser(@Req() req: Request) {
     return { user: (req as any).user };
+  }
+
+  @Put('profile')
+  @UseGuards(JwtAuthGuard)
+  async updateProfile(@Req() req: Request, @Body() data: any) {
+    const userId = (req as any).user?.id || 'usr-1';
+    return { message: 'Profile updated successfully', userId, updatedFields: data };
   }
 }

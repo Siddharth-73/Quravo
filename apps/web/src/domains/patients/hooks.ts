@@ -14,6 +14,24 @@ export interface Patient {
   createdAt?: string;
 }
 
+export interface TimelineEvent {
+  id: string;
+  patientId: string;
+  type: 'encounter' | 'prescription' | 'lab' | 'note';
+  title: string;
+  description: string;
+  date: string;
+}
+
+export interface Attachment {
+  id: string;
+  patientId: string;
+  fileName: string;
+  fileType: string;
+  url: string;
+  uploadedAt: string;
+}
+
 export function usePatients(filters: Record<string, unknown> = {}) {
   return useQuery({
     queryKey: patientKeys.list(filters),
@@ -26,7 +44,7 @@ export function usePatients(filters: Record<string, unknown> = {}) {
           { id: 'p-101', mrn: 'MRN-2026-001', fullName: 'Eleanor Vance', gender: 'Female', age: 34, phone: '+1 (555) 234-5678', email: 'eleanor.vance@example.com', status: 'Active' },
           { id: 'p-102', mrn: 'MRN-2026-002', fullName: 'Marcus Aurelius', gender: 'Male', age: 52, phone: '+1 (555) 876-5432', email: 'marcus.aurelius@example.com', status: 'Active' },
           { id: 'p-103', mrn: 'MRN-2026-003', fullName: 'Sophia Lin', gender: 'Female', age: 28, phone: '+1 (555) 345-6789', email: 'sophia.lin@example.com', status: 'Active' },
-        ];
+        ] as Patient[];
       }
     },
   });
@@ -47,3 +65,41 @@ export function useCreatePatient() {
     },
   });
 }
+
+export function usePatientTimeline(patientId: string) {
+  return useQuery({
+    queryKey: patientKeys.timeline(patientId),
+    queryFn: async () => {
+      return await apiFetch<TimelineEvent[]>(`/patients/${patientId}/timeline`);
+    },
+    enabled: !!patientId,
+  });
+}
+
+export function usePatientAttachments(patientId: string) {
+  return useQuery({
+    queryKey: patientKeys.attachments(patientId),
+    queryFn: async () => {
+      return await apiFetch<Attachment[]>(`/patients/${patientId}/attachments`);
+    },
+    enabled: !!patientId,
+  });
+}
+
+export function useUploadAttachment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ patientId, file }: { patientId: string; file: File }) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      return await apiFetch<Attachment>(`/patients/${patientId}/attachments`, {
+        method: 'POST',
+        body: formData,
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: patientKeys.attachments(variables.patientId) });
+    },
+  });
+}
+

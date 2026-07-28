@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { StorageProvider } from '../../common/providers/storage.provider';
-import { patients, patientTimeline, patientAttachments, eq, and, sql, or } from '@quravo/db';
+import { patients, patientTimeline, patientAttachments, patientTags, patientTagAssignments, patientNotes, eq, and, sql, or } from '@quravo/db';
 import { CreatePatientDto, UpdatePatientDto } from './dto/create-patient.dto';
 import { SearchPatientDto } from './dto/search-patient.dto';
 
@@ -177,5 +177,32 @@ export class PatientService {
       .select()
       .from(patientAttachments)
       .where(and(eq(patientAttachments.tenantId, tenantId), eq(patientAttachments.patientId, patientId)));
+  }
+
+  async getPatientNotes(tenantId: string, patientId: string) {
+    const db = this.dbService.db;
+    return db.select().from(patientNotes).where(and(eq(patientNotes.tenantId, tenantId), eq(patientNotes.patientId, patientId))).orderBy(sql`${patientNotes.createdAt} DESC`);
+  }
+
+  async addPatientNote(tenantId: string, patientId: string, authorId: string, note: string) {
+    const db = this.dbService.db;
+    const [newNote] = await db.insert(patientNotes).values({
+      tenantId,
+      patientId,
+      authorId,
+      note,
+    }).returning();
+    return newNote;
+  }
+
+  async getPatientTags(tenantId: string, patientId: string) {
+    const db = this.dbService.db;
+    return db.select({
+      id: patientTags.id,
+      name: patientTags.name,
+      color: patientTags.color
+    }).from(patientTagAssignments)
+      .innerJoin(patientTags, eq(patientTagAssignments.tagId, patientTags.id))
+      .where(and(eq(patientTagAssignments.patientId, patientId), eq(patientTags.tenantId, tenantId)));
   }
 }

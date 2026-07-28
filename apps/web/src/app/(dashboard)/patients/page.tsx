@@ -1,84 +1,32 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DataTable, ColumnDef } from '@/components/data-table/DataTable';
-import { Plus, User, Phone, Mail, FileText, Calendar } from 'lucide-react';
-
-interface PatientRow {
-  id: string;
-  mrn: string;
-  fullName: string;
-  gender: string;
-  age: number;
-  phone: string;
-  email: string;
-  lastVisit: string;
-  status: 'Active' | 'Inactive';
-}
-
-const mockPatients: PatientRow[] = [
-  {
-    id: 'p-101',
-    mrn: 'MRN-2026-001',
-    fullName: 'Eleanor Vance',
-    gender: 'Female',
-    age: 34,
-    phone: '+1 (555) 234-5678',
-    email: 'eleanor.vance@example.com',
-    lastVisit: '2026-07-20',
-    status: 'Active',
-  },
-  {
-    id: 'p-102',
-    mrn: 'MRN-2026-002',
-    fullName: 'Marcus Aurelius',
-    gender: 'Male',
-    age: 52,
-    phone: '+1 (555) 876-5432',
-    email: 'marcus.aurelius@example.com',
-    lastVisit: '2026-07-25',
-    status: 'Active',
-  },
-  {
-    id: 'p-103',
-    mrn: 'MRN-2026-003',
-    fullName: 'Sophia Lin',
-    gender: 'Female',
-    age: 28,
-    phone: '+1 (555) 345-6789',
-    email: 'sophia.lin@example.com',
-    lastVisit: '2026-07-15',
-    status: 'Active',
-  },
-  {
-    id: 'p-104',
-    mrn: 'MRN-2026-004',
-    fullName: 'David Miller',
-    gender: 'Male',
-    age: 45,
-    phone: '+1 (555) 987-6543',
-    email: 'david.miller@example.com',
-    lastVisit: '2026-06-30',
-    status: 'Inactive',
-  },
-  {
-    id: 'p-105',
-    mrn: 'MRN-2026-005',
-    fullName: 'Hannah Abbott',
-    gender: 'Female',
-    age: 29,
-    phone: '+1 (555) 654-3210',
-    email: 'hannah.abbott@example.com',
-    lastVisit: '2026-07-27',
-    status: 'Active',
-  },
-];
+import { Plus, User, Phone, Mail, FileText, Calendar, Download, Loader2, CheckCircle2 } from 'lucide-react';
+import { usePatients, Patient } from '@/domains/patients/hooks';
+import { useRequestExport, useExportStatus } from '@/domains/export/hooks';
 
 export default function PatientsDirectoryPage() {
   const router = useRouter();
+  const { data: patients = [], isLoading } = usePatients();
+  
+  const [exportJobId, setExportJobId] = useState<string | null>(null);
+  const requestExportMutation = useRequestExport();
+  const { data: exportStatus } = useExportStatus(exportJobId);
 
-  const columns: ColumnDef<PatientRow>[] = [
+  const handleExport = async () => {
+    try {
+      const result = await requestExportMutation.mutateAsync({ format: 'csv', resource: 'patients' });
+      setExportJobId(result.jobId);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const isExporting = requestExportMutation.isPending || (exportStatus && exportStatus.status === 'pending');
+
+  const columns: ColumnDef<Patient>[] = [
     {
       key: 'mrn',
       header: 'Medical Record #',
@@ -120,13 +68,13 @@ export default function PatientsDirectoryPage() {
       ),
     },
     {
-      key: 'lastVisit',
-      header: 'Last Visit Date',
+      key: 'createdAt',
+      header: 'Created At',
       sortable: true,
       accessor: (patient) => (
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <Calendar className="w-3 h-3" />
-          <span>{patient.lastVisit}</span>
+          <span>{patient.createdAt ? new Date(patient.createdAt).toLocaleDateString() : 'N/A'}</span>
         </div>
       ),
     },
@@ -157,18 +105,49 @@ export default function PatientsDirectoryPage() {
           </p>
         </div>
 
-        <button className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-opacity shadow-sm">
-          <Plus className="w-3.5 h-3.5" />
-          <span>Register New Patient</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {exportStatus?.status === 'completed' && exportStatus.url ? (
+            <a
+              href={exportStatus.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setExportJobId(null)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-700 transition-colors shadow-sm"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Download CSV</span>
+            </a>
+          ) : (
+            <button
+              onClick={handleExport}
+              disabled={isExporting}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border bg-card text-xs font-medium hover:bg-muted transition-colors shadow-sm disabled:opacity-50"
+            >
+              {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              <span>{isExporting ? 'Preparing Export...' : 'Export CSV'}</span>
+            </button>
+          )}
+
+          <button className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-opacity shadow-sm">
+            <Plus className="w-3.5 h-3.5" />
+            <span>Register New Patient</span>
+          </button>
+        </div>
       </div>
 
-      <DataTable
-        data={mockPatients}
-        columns={columns}
-        searchPlaceholder="Search patients by name, MRN, phone..."
-        onRowClick={(patient) => router.push(`/patients/${patient.id}`)}
-      />
+      {isLoading ? (
+        <div className="flex justify-center p-8 border border-border bg-card rounded-xl">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <DataTable
+          data={patients}
+          columns={columns}
+          searchPlaceholder="Search patients by name, MRN, phone..."
+          onRowClick={(patient) => router.push(`/patients/${patient.id}`)}
+        />
+      )}
     </div>
   );
 }
+

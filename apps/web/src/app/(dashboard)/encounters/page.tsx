@@ -1,123 +1,76 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Stethoscope, User, Save, Sparkles, Plus, Trash2, CheckCircle2, Clock } from 'lucide-react';
+import React from 'react';
+import { Stethoscope, User, Save, Sparkles, Plus, Trash2, CheckCircle2, Clock, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { useEncounters } from '@/domains/emr/hooks';
 
 export default function EncountersPage() {
-  const [patientName, setPatientName] = useState('Eleanor Vance (MRN-2026-001)');
-  const [subjective, setSubjective] = useState('Patient complains of persistent dry cough and mild fever for 3 days.');
-  const [objective, setObjective] = useState('Temp: 100.2°F, BP: 122/81 mmHg, Pulse: 78 bpm. Throat displays mild erythema.');
-  const [assessment, setAssessment] = useState('Acute Upper Respiratory Tract Infection (ICD-10: J06.9)');
-  const [plan, setPlan] = useState('1. Rest & hydration\n2. Paracetamol 500mg as needed for fever\n3. Follow up in 5 days if symptoms worsen');
-
-  const [aiLoading, setAiLoading] = useState(false);
-
-  const handleAiAssist = () => {
-    setAiLoading(true);
-    setTimeout(() => {
-      setAssessment('Acute Viral Nasopharyngitis (ICD-10: J00) - AI Suggested Differential Diagnosis');
-      setPlan((prev) => `${prev}\n4. AI Note: Consider saline nasal spray for congestion relief.`);
-      setAiLoading(false);
-    }, 600);
-  };
+  const { data: encounters = [], isLoading } = useEncounters();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Clinical SOAP Note Editor</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Encounters Directory</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Electronic Health Record encounter workspace with AI clinical assistance
+            View all clinical encounters across the clinic
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleAiAssist}
-            disabled={aiLoading}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-primary/30 bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors shadow-xs"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-primary animate-pulse" />
-            <span>{aiLoading ? 'Analyzing...' : 'AI Clinical Assist'}</span>
-          </button>
-          <button className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-opacity shadow-sm">
-            <Save className="w-3.5 h-3.5" />
-            <span>Sign & Finalize Encounter</span>
-          </button>
+           <Link href="/encounters/new" className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity shadow-sm">
+             <Plus className="w-3.5 h-3.5" />
+             <span>New Encounter</span>
+           </Link>
         </div>
       </div>
 
-      {/* Patient Selector */}
-      <div className="rounded-xl border border-border bg-card p-4 shadow-xs flex items-center justify-between text-xs">
-        <div className="flex items-center gap-3">
-          <User className="w-4 h-4 text-primary" />
-          <span className="font-semibold text-foreground">Encounter Patient:</span>
-          <span className="text-muted-foreground font-medium">{patientName}</span>
-        </div>
-        <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-          <Clock className="w-3 h-3" /> Encounter Date: 2026-07-27 (Today)
-        </span>
-      </div>
-
-      {/* 4-Pane SOAP Form Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Subjective */}
-        <div className="rounded-xl border border-border bg-card p-5 space-y-2 shadow-xs">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-bold uppercase tracking-wider text-primary">Subjective (S)</label>
-            <span className="text-[10px] text-muted-foreground">Chief Complaints & History</span>
+      <div className="rounded-xl border border-border bg-card p-5 shadow-xs space-y-4">
+        {isLoading ? (
+          <div className="flex justify-center p-8">
+             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
-          <textarea
-            rows={5}
-            value={subjective}
-            onChange={(e) => setSubjective(e.target.value)}
-            className="w-full rounded-lg border border-border bg-muted/30 p-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 font-sans leading-relaxed"
-          />
-        </div>
+        ) : (
+          <div className="space-y-3">
+             <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-2 border-b border-border">
+                <span className="w-1/4">Date</span>
+                <span className="w-1/3">Patient Name</span>
+                <span className="w-1/4">Chief Complaint</span>
+                <span className="w-1/6 text-right">Status</span>
+             </div>
+             
+             {encounters.map(encounter => (
+                <div key={encounter.id} className="flex items-center justify-between text-xs p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted/40">
+                  <span className="w-1/4 flex items-center gap-1.5 font-medium">
+                     <Clock className="w-3.5 h-3.5 text-primary" />
+                     {new Date(encounter.date).toLocaleDateString()}
+                  </span>
+                  <span className="w-1/3 flex items-center gap-1.5 font-medium text-foreground">
+                     <User className="w-3.5 h-3.5 text-muted-foreground" />
+                     {encounter.patientName || 'Unknown Patient'}
+                  </span>
+                  <span className="w-1/4 truncate text-muted-foreground">
+                     {encounter.chiefComplaint || 'No chief complaint'}
+                  </span>
+                  <span className="w-1/6 text-right">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${encounter.status === 'Final' || encounter.status === 'Signed' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 border-amber-500/20'}`}>
+                      {encounter.status}
+                    </span>
+                  </span>
+                </div>
+             ))}
 
-        {/* Objective */}
-        <div className="rounded-xl border border-border bg-card p-5 space-y-2 shadow-xs">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-bold uppercase tracking-wider text-emerald-500">Objective (O)</label>
-            <span className="text-[10px] text-muted-foreground">Vitals & Physical Examination</span>
+             {encounters.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  No encounters found.
+                </div>
+             )}
           </div>
-          <textarea
-            rows={5}
-            value={objective}
-            onChange={(e) => setObjective(e.target.value)}
-            className="w-full rounded-lg border border-border bg-muted/30 p-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-sans leading-relaxed"
-          />
-        </div>
-
-        {/* Assessment */}
-        <div className="rounded-xl border border-border bg-card p-5 space-y-2 shadow-xs">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-bold uppercase tracking-wider text-amber-500">Assessment (A)</label>
-            <span className="text-[10px] text-muted-foreground">Clinical Diagnoses (ICD-10)</span>
-          </div>
-          <textarea
-            rows={5}
-            value={assessment}
-            onChange={(e) => setAssessment(e.target.value)}
-            className="w-full rounded-lg border border-border bg-muted/30 p-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-sans leading-relaxed"
-          />
-        </div>
-
-        {/* Plan */}
-        <div className="rounded-xl border border-border bg-card p-5 space-y-2 shadow-xs">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-bold uppercase tracking-wider text-purple-500">Plan (P)</label>
-            <span className="text-[10px] text-muted-foreground">Medications & Treatment Instructions</span>
-          </div>
-          <textarea
-            rows={5}
-            value={plan}
-            onChange={(e) => setPlan(e.target.value)}
-            className="w-full rounded-lg border border-border bg-muted/30 p-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/20 font-sans leading-relaxed"
-          />
-        </div>
+        )}
       </div>
     </div>
   );
 }
+

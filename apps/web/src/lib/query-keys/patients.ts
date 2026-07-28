@@ -6,4 +6,5 @@ export const patientKeys = {
   detail: (id: string) => [...patientKeys.details(), id] as const,
   search: (query: string) => [...patientKeys.all, 'search', query] as const,
   timeline: (id: string) => [...patientKeys.all, 'timeline', id] as const,
+  attachments: (id: string) => [...patientKeys.all, 'attachments', id] as const,
 };

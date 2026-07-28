@@ -68,6 +68,14 @@ export class ClinicController {
     return this.clinicService.updateWorkingHours(tenantId, branchId, dto);
   }
 
+  @Get('staff')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('users:read')
+  async getStaff(@Req() req: Request) {
+    const tenantId = (req as any).user.tenantId;
+    return this.clinicService.getStaff(tenantId);
+  }
+
   @Post('staff/invite')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions('users:write')

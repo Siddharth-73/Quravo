@@ -29,3 +29,8 @@ export * from './refunds';
 export * from './notifications';
 export * from './analytics-summaries';
 export * from './push-subscriptions';
+export * from './patient-tags';
+export * from './patient-notes';
+export * from './patient-consents';
+export * from './patient-family';
+export * from './patient-favorites';

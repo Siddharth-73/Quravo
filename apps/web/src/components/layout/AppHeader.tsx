@@ -4,8 +4,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { BranchSwitcher } from './BranchSwitcher';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/providers/ThemeProvider';
-import { Search, Bell, Sun, Moon, Lock, ChevronDown, Settings, LogOut } from 'lucide-react';
+import { Search, Bell, Sun, Moon, Lock, ChevronDown, Settings, LogOut, User } from 'lucide-react';
 import { usePushSubscriptions } from '@/hooks/use-push-subscriptions';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface AppHeaderProps {
   onOpenCommandPalette?: () => void;
@@ -14,7 +16,8 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ onOpenCommandPalette, tenantName = 'Quravo Health', logoUrl }: AppHeaderProps) {
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, setUser } = useAuth();
   const { mode, setMode } = useTheme();
   
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -39,6 +42,12 @@ export function AppHeader({ onOpenCommandPalette, tenantName = 'Quravo Health', 
 
   const toggleTheme = () => {
     setMode(mode === 'dark' ? 'light' : 'dark');
+  };
+
+  const handleSignOut = () => {
+    setUser(null);
+    setIsProfileOpen(false);
+    router.push('/login');
   };
 
   return (
@@ -146,11 +155,11 @@ export function AppHeader({ onOpenCommandPalette, tenantName = 'Quravo Health', 
             className="flex items-center gap-2.5 pl-1 pr-2 py-1 rounded-lg hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary font-medium text-secondary-foreground text-xs ring-1 ring-border">
-              {user?.firstName ? `${user.firstName.charAt(0)}${user.lastName?.charAt(0) || ''}` : 'DR'}
+              {user?.firstName ? `${user.firstName.charAt(0)}${user.lastName?.charAt(0) || ''}` : 'SJ'}
             </div>
             <div className="hidden md:flex flex-col text-left">
               <span className="text-xs font-medium text-foreground leading-none">
-                {user?.firstName ? `Dr. ${user.firstName} ${user.lastName}` : 'Dr. Sarah Jenkins'}
+                {user?.firstName ? `${user.firstName} ${user.lastName}` : 'Dr. Sarah Jenkins'}
               </span>
               <span className="text-[10px] text-muted-foreground capitalize mt-0.5">
                 {user?.role || 'Lead Physician'}
@@ -166,24 +175,30 @@ export function AppHeader({ onOpenCommandPalette, tenantName = 'Quravo Health', 
                   {user?.firstName ? `${user.firstName} ${user.lastName}` : 'Dr. Sarah Jenkins'}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {user?.email || 'sarah.jenkins@example.com'}
+                  {user?.email || 'sarah.jenkins@apexhealth.com'}
                 </p>
               </div>
-              <div className="p-1.5">
-                <button
+              <div className="p-1.5 space-y-0.5">
+                <Link
+                  href="/profile"
                   onClick={() => setIsProfileOpen(false)}
-                  className="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                >
+                  <User className="w-4 h-4 text-muted-foreground" />
+                  My Profile
+                </Link>
+                <Link
+                  href="/settings"
+                  onClick={() => setIsProfileOpen(false)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium text-foreground hover:bg-muted transition-colors"
                 >
                   <Settings className="w-4 h-4 text-muted-foreground" />
-                  Account Settings
-                </button>
+                  Clinic Settings
+                </Link>
               </div>
               <div className="border-t border-border p-1.5">
                 <button
-                  onClick={() => {
-                    setIsProfileOpen(false);
-                    // Implement logout logic here later
-                  }}
+                  onClick={handleSignOut}
                   className="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
                 >
                   <LogOut className="w-4 h-4" />

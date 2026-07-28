@@ -18,6 +18,7 @@ export type PermissionCode =
 
 interface PermissionContextType {
   permissions: PermissionCode[];
+  setPermissions: (permissions: PermissionCode[]) => void;
   hasPermission: (permission: PermissionCode) => boolean;
   hasAllPermissions: (permissions: PermissionCode[]) => boolean;
   hasAnyPermission: (permissions: PermissionCode[]) => boolean;
@@ -32,7 +33,7 @@ export function PermissionProvider({
   children: React.ReactNode;
   initialPermissions?: PermissionCode[];
 }) {
-  const [permissions] = useState<PermissionCode[]>(initialPermissions);
+  const [permissions, setPermissions] = useState<PermissionCode[]>(initialPermissions);
 
   const hasPermission = (permission: PermissionCode): boolean => {
     return permissions.includes(permission) || permissions.includes('admin:access');
@@ -48,7 +49,7 @@ export function PermissionProvider({
 
   return (
     <PermissionContext.Provider
-      value={{ permissions, hasPermission, hasAllPermissions, hasAnyPermission }}
+      value={{ permissions, setPermissions, hasPermission, hasAllPermissions, hasAnyPermission }}
     >
       {children}
     </PermissionContext.Provider>
