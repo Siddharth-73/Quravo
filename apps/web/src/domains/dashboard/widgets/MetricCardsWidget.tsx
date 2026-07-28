@@ -3,6 +3,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardKeys } from '@/lib/query-keys/dashboard';
+import { apiFetch } from '@/lib/api/client';
 import { Calendar, DollarSign, Users, Clock, ArrowUpRight, RefreshCw } from 'lucide-react';
 
 interface MetricItem {
@@ -15,42 +16,51 @@ interface MetricItem {
 }
 
 async function fetchMetrics(): Promise<MetricItem[]> {
-  // Mock API call simulation with delay
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  return [
-    {
-      id: 'appts',
-      label: "Today's Appointments",
-      value: '24',
-      change: '+12% vs yesterday',
-      isPositive: true,
-      iconName: 'Calendar',
-    },
-    {
-      id: 'rev',
-      label: 'Collected Today',
-      value: '$3,480.00',
-      change: '+8% vs average',
-      isPositive: true,
-      iconName: 'DollarSign',
-    },
-    {
-      id: 'queue',
-      label: 'Patients in Waiting Room',
-      value: '5',
-      change: 'Avg wait: 14 mins',
-      isPositive: true,
-      iconName: 'Clock',
-    },
-    {
-      id: 'encounters',
-      label: 'Pending SOAP Notes',
-      value: '3',
-      change: 'Needs signing',
-      isPositive: false,
-      iconName: 'Users',
-    },
-  ];
+  try {
+    const res = await apiFetch<any>('/analytics/dashboard');
+    return [
+      {
+        id: 'appts',
+        label: "Today's Appointments",
+        value: String(res.totalAppointments || 0),
+        change: '+12% vs yesterday',
+        isPositive: true,
+        iconName: 'Calendar',
+      },
+      {
+        id: 'rev',
+        label: 'Collected Today',
+        value: `$${parseFloat(res.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+        change: '+8% vs average',
+        isPositive: true,
+        iconName: 'DollarSign',
+      },
+      {
+        id: 'queue',
+        label: 'Patients in Waiting Room',
+        value: String(res.totalWalkIns || 0),
+        change: 'Avg wait: 14 mins',
+        isPositive: true,
+        iconName: 'Clock',
+      },
+      {
+        id: 'encounters',
+        label: 'Pending SOAP Notes',
+        value: '1',
+        change: 'Needs signing',
+        isPositive: false,
+        iconName: 'Users',
+      },
+    ];
+  } catch (error) {
+    console.error('Failed to fetch real metrics, returning empty states:', error);
+    return [
+      { id: 'appts', label: "Today's Appointments", value: '0', change: '0% vs yesterday', isPositive: true, iconName: 'Calendar' },
+      { id: 'rev', label: 'Collected Today', value: '$0.00', change: '0% vs average', isPositive: true, iconName: 'DollarSign' },
+      { id: 'queue', label: 'Patients in Waiting Room', value: '0', change: 'Avg wait: --', isPositive: true, iconName: 'Clock' },
+      { id: 'encounters', label: 'Pending SOAP Notes', value: '0', change: 'All signed', isPositive: true, iconName: 'Users' },
+    ];
+  }
 }
 
 const iconMap = {

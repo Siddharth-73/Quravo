@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, ConflictException, BadRequestException }
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DatabaseService } from '../../database/database.service';
 import { QueueService } from '../../queue/queue.service';
-import { appointments, appointmentReminders, patientTimeline, eq, and, sql, gte, lte, ne } from '@quravo/db';
+import { appointments, appointmentReminders, patientTimeline, patients, users, eq, and, sql, gte, lte, ne } from '@quravo/db';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { CreateWalkInDto } from './dto/walk-in.dto';
 import { UpdateAppointmentStatusDto } from './dto/update-status.dto';
@@ -204,7 +204,29 @@ export class AppointmentService {
       conditions = and(conditions, lte(appointments.endTime, new Date(endDate)))!;
     }
 
-    return db.select().from(appointments).where(conditions).orderBy(sql`${appointments.startTime} ASC`);
+    return db
+      .select({
+        id: appointments.id,
+        appointmentNumber: appointments.appointmentNumber,
+        type: appointments.type,
+        status: appointments.status,
+        startTime: appointments.startTime,
+        endTime: appointments.endTime,
+        tokenNumber: appointments.tokenNumber,
+        chiefComplaint: appointments.chiefComplaint,
+        notes: appointments.notes,
+        patientId: appointments.patientId,
+        patientFirstName: patients.firstName,
+        patientLastName: patients.lastName,
+        doctorId: appointments.doctorId,
+        doctorFirstName: users.firstName,
+        doctorLastName: users.lastName,
+      })
+      .from(appointments)
+      .leftJoin(patients, eq(appointments.patientId, patients.id))
+      .leftJoin(users, eq(appointments.doctorId, users.id))
+      .where(conditions)
+      .orderBy(sql`${appointments.startTime} ASC`);
   }
 
   async updateStatus(tenantId: string, appointmentId: string, dto: UpdateAppointmentStatusDto) {
@@ -260,8 +282,25 @@ export class AppointmentService {
     todayStart.setHours(0, 0, 0, 0);
 
     return db
-      .select()
+      .select({
+        id: appointments.id,
+        appointmentNumber: appointments.appointmentNumber,
+        type: appointments.type,
+        status: appointments.status,
+        startTime: appointments.startTime,
+        endTime: appointments.endTime,
+        tokenNumber: appointments.tokenNumber,
+        chiefComplaint: appointments.chiefComplaint,
+        patientId: appointments.patientId,
+        patientFirstName: patients.firstName,
+        patientLastName: patients.lastName,
+        doctorId: appointments.doctorId,
+        doctorFirstName: users.firstName,
+        doctorLastName: users.lastName,
+      })
       .from(appointments)
+      .leftJoin(patients, eq(appointments.patientId, patients.id))
+      .leftJoin(users, eq(appointments.doctorId, users.id))
       .where(
         and(
           eq(appointments.tenantId, tenantId),

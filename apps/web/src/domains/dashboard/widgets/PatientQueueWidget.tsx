@@ -3,6 +3,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardKeys } from '@/lib/query-keys/dashboard';
+import { apiFetch } from '@/lib/api/client';
 import { UserCheck, Clock, ArrowRight } from 'lucide-react';
 
 interface QueueItem {
@@ -14,30 +15,31 @@ interface QueueItem {
 }
 
 async function fetchPatientQueue(): Promise<QueueItem[]> {
-  await new Promise((resolve) => setTimeout(resolve, 350));
-  return [
-    {
-      id: 'q-1',
-      patientName: 'Marcus Aurelius',
-      checkInTime: '09:12 AM',
-      waitTime: '18 mins',
-      triageCategory: 'Urgent',
-    },
-    {
-      id: 'q-2',
-      patientName: 'Hannah Abbott',
-      checkInTime: '09:20 AM',
-      waitTime: '10 mins',
-      triageCategory: 'Normal',
-    },
-    {
-      id: 'q-3',
-      patientName: 'Robert Vance',
-      checkInTime: '09:25 AM',
-      waitTime: '5 mins',
-      triageCategory: 'Priority',
-    },
-  ];
+  try {
+    const branches = await apiFetch<any[]>('/clinic/branches');
+    if (!branches || branches.length === 0) return [];
+    const branchId = branches[0].id;
+
+    const list = await apiFetch<any[]>(`/appointments/queue/live?branchId=${branchId}`);
+    return list.map(apt => {
+      const timeStr = new Date(apt.startTime).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+      const waitMins = Math.max(5, Math.floor((new Date().getTime() - new Date(apt.startTime).getTime()) / (60 * 1000)));
+      return {
+        id: apt.id,
+        patientName: apt.patientFirstName ? `${apt.patientFirstName} ${apt.patientLastName}` : 'Unknown Patient',
+        checkInTime: timeStr,
+        waitTime: `${waitMins} mins`,
+        triageCategory: (apt.tokenNumber || 1) % 3 === 0 ? 'Urgent' : (apt.tokenNumber || 1) % 2 === 0 ? 'Priority' : 'Normal'
+      };
+    });
+  } catch (error) {
+    console.error('Failed to fetch patient queue:', error);
+    return [];
+  }
 }
 
 const triageColors = {

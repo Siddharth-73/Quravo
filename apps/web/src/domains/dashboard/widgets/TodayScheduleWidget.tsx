@@ -3,6 +3,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardKeys } from '@/lib/query-keys/dashboard';
+import { apiFetch } from '@/lib/api/client';
 import { Clock, User, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface AppointmentSlot {
@@ -15,41 +16,28 @@ interface AppointmentSlot {
 }
 
 async function fetchTodaySchedule(): Promise<AppointmentSlot[]> {
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  return [
-    {
-      id: 'apt-1',
-      time: '09:00 AM',
-      patientName: 'Eleanor Vance',
-      reason: 'General Medical Consultation',
-      status: 'in_progress',
-      doctorName: 'Dr. Sarah Jenkins',
-    },
-    {
-      id: 'apt-2',
-      time: '09:30 AM',
-      patientName: 'Marcus Aurelius',
-      reason: 'Hypertension Follow-Up',
-      status: 'checked_in',
-      doctorName: 'Dr. Sarah Jenkins',
-    },
-    {
-      id: 'apt-3',
-      time: '10:15 AM',
-      patientName: 'Sophia Lin',
-      reason: 'Blood Test Results Review',
-      status: 'scheduled',
-      doctorName: 'Dr. Sarah Jenkins',
-    },
-    {
-      id: 'apt-4',
-      time: '11:00 AM',
-      patientName: 'David Miller',
-      reason: 'Annual Health Screening',
-      status: 'scheduled',
-      doctorName: 'Dr. Sarah Jenkins',
-    },
-  ];
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const list = await apiFetch<any[]>(`/appointments?startDate=${today}T00:00:00.000Z&endDate=${today}T23:59:59.000Z`);
+    return list.map(apt => {
+      const timeStr = new Date(apt.startTime).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+      return {
+        id: apt.id,
+        time: timeStr,
+        patientName: apt.patientFirstName ? `${apt.patientFirstName} ${apt.patientLastName}` : 'Unknown Patient',
+        reason: apt.chiefComplaint || 'General Consultation',
+        status: apt.status,
+        doctorName: apt.doctorFirstName ? `Dr. ${apt.doctorFirstName} ${apt.doctorLastName}` : 'Unknown Practitioner'
+      };
+    });
+  } catch (error) {
+    console.error('Failed to fetch schedule:', error);
+    return [];
+  }
 }
 
 const statusBadges = {
