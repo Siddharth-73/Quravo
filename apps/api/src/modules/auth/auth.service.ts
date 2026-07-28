@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, UnauthorizedException, ConflictExcepti
 import { JwtService } from '@nestjs/jwt';
 import { DatabaseService } from '../../database/database.service';
 import { QueueService } from '../../queue/queue.service';
-import { tenants, users, tenantMemberships, refreshTokens, verificationTokens, eq, and } from '@quravo/db';
+import { tenants, users, tenantMemberships, refreshTokens, verificationTokens, roles, tenantModules, eq, and } from '@quravo/db';
 import * as argon2 from '@node-rs/argon2';
 import { randomUUID, createHash } from 'crypto';
 import { RegisterDto } from './dto/register.dto';
@@ -327,5 +327,111 @@ export class AuthService {
     await db.delete(verificationTokens).where(eq(verificationTokens.id, tokenRecord.id));
 
     return { message: 'Password reset successfully. You may now log in with your new password.' };
+  }
+
+  async getSession(userId: string, tenantId: string, roleName: string) {
+    const db = this.dbService.db;
+
+    // Load User Details
+    const [user] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user) {
+      throw new UnauthorizedException('User not found.');
+    }
+
+    // Special bypass for Platform Super-Admin
+    if (roleName === 'super_admin') {
+      return {
+        user: {
+          ...user,
+          role: 'super_admin',
+        },
+        tenant: {
+          id: '00000000-0000-0000-0000-000000000000',
+          name: 'Quravo Platform',
+          slug: 'super-admin',
+          planTier: 'erp',
+        },
+        permissions: ['admin:access'],
+        features: {
+          patients: true,
+          appointments: true,
+          emr: true,
+          billing: true,
+          pharmacy: true,
+          laboratory: true,
+          inventory: true,
+        },
+      };
+    }
+
+    // Load Tenant Details
+    const [tenant] = await db
+      .select({
+        id: tenants.id,
+        name: tenants.name,
+        slug: tenants.slug,
+        logoUrl: tenants.logoUrl,
+        planTier: tenants.planTier,
+      })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId))
+      .limit(1);
+
+    if (!tenant) {
+      throw new UnauthorizedException('Tenant not found.');
+    }
+
+    // Load Role Permissions
+    const [role] = await db
+      .select({
+        permissions: roles.permissions,
+      })
+      .from(roles)
+      .where(and(eq(roles.tenantId, tenantId), eq(roles.name, roleName)))
+      .limit(1);
+
+    const rawPermissions = role ? role.permissions : [];
+
+    // Load Modules
+    const modulesList = await db
+      .select()
+      .from(tenantModules)
+      .where(eq(tenantModules.tenantId, tenantId));
+
+    const features: Record<string, boolean> = {
+      patients: true,
+      appointments: true,
+      emr: true,
+      billing: true,
+    };
+    for (const mod of modulesList) {
+      features[mod.moduleKey] = mod.enabled;
+    }
+
+    return {
+      user: {
+        ...user,
+        role: roleName,
+      },
+      tenant: {
+        id: tenant.id,
+        name: tenant.name,
+        slug: tenant.slug,
+        logoUrl: tenant.logoUrl,
+        planTier: tenant.planTier,
+      },
+      permissions: rawPermissions,
+      features,
+    };
   }
 }

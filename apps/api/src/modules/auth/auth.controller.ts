@@ -88,6 +88,15 @@ export class AuthController {
     return { user: (req as any).user };
   }
 
+  @Get('session')
+  @UseGuards(JwtAuthGuard)
+  async getSession(@Req() req: Request) {
+    const userId = (req as any).user.userId;
+    const tenantId = (req as any).user.tenantId;
+    const role = (req as any).user.role;
+    return this.authService.getSession(userId, tenantId, role);
+  }
+
   @Put('profile')
   @UseGuards(JwtAuthGuard)
   async updateProfile(@Req() req: Request, @Body() data: any) {

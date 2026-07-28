@@ -1,24 +1,50 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { getSidebar } from '@/lib/navigation/get-sidebar';
 import { useFeatureFlags } from '@/providers/FeatureFlagProvider';
 import { usePermissions } from '@/providers/PermissionProvider';
 import { useTenant } from '@/providers/TenantProvider';
+import { useAuth } from '@/providers/AuthProvider';
+import { apiFetch } from '@/lib/api/client';
 import { NavItem } from '@/lib/navigation/sidebar-schema';
-import { Lock, Sparkles, X } from 'lucide-react';
+import { Lock, Sparkles, X, Loader2 } from 'lucide-react';
 import { CommandPalette } from '@/components/command-palette/CommandPalette';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { features } = useFeatureFlags();
-  const { permissions } = usePermissions();
-  const { tenant } = useTenant();
+  const { features, setFeatures } = useFeatureFlags();
+  const { permissions, setPermissions } = usePermissions();
+  const { tenant, setTenant } = useTenant();
+  const { user, setUser } = useAuth();
+  const router = useRouter();
+
   const [upgradeModalItem, setUpgradeModalItem] = useState<NavItem | null>(null);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    async function restoreSession() {
+      try {
+        const session = await apiFetch<any>('/auth/session');
+        setUser(session.user);
+        setTenant(session.tenant);
+        setPermissions(session.permissions);
+        setFeatures(session.features);
+        setLoading(false);
+      } catch (err) {
+        console.warn('Session restoration failed:', err);
+        // Clear auth contexts
+        setUser(null);
+        router.push('/login');
+      }
+    }
+    restoreSession();
+  }, [setUser, setTenant, setPermissions, setFeatures, router]);
+
+  useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
@@ -31,6 +57,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Compute navigation tree via NavigationService outside components
   const navigation = getSidebar({ features, permissions });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-xs text-muted-foreground animate-pulse font-medium">Validating clinic session...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
