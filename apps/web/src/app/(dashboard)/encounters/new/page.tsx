@@ -4,7 +4,7 @@ import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Save, Sparkles, User, ArrowLeft, Plus, Trash2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useCreateEncounter, useCreatePrescription, useAiNotes } from '@/domains/emr/hooks';
+import { useCreateEncounter, useCreatePrescription, useAiNotes, useAiResult } from '@/domains/emr/hooks';
 import { usePatients } from '@/domains/patients/hooks';
 
 interface RxItem {
@@ -33,6 +33,9 @@ function NewEncounterForm() {
   const createEncounterMutation = useCreateEncounter();
   const createPrescriptionMutation = useCreatePrescription();
   const aiNotesMutation = useAiNotes();
+  const [aiJobId, setAiJobId] = useState<string | null>(null);
+  const { data: aiResult } = useAiResult(aiJobId);
+  const isAiProcessing = aiNotesMutation.isPending || (aiJobId !== null && aiResult?.status !== 'completed' && aiResult?.status !== 'failed');
 
   const addPrescription = () => {
     setPrescriptions((prev) => [
@@ -47,22 +50,21 @@ function NewEncounterForm() {
 
   const handleAiAssist = async () => {
     try {
-      const result = await aiNotesMutation.mutateAsync({ transcript: subjective || 'Patient has a sore throat.' });
-      if (result.soap) {
-        setSubjective(result.soap.subjective || subjective);
-        setObjective(result.soap.objective || objective);
-        setAssessment(result.soap.assessment || assessment);
-        setPlan(result.soap.plan || plan);
-      }
+      const result = await aiNotesMutation.mutateAsync({
+        appointmentId: patientId,
+        rawNotes: subjective || 'Patient has a sore throat.',
+      });
+      setAiJobId(result.jobId);
     } catch (e) {
       console.error(e);
-      // Fallback
-      setSubjective('Patient reports acute sore throat, fever, and fatigue starting 2 days ago.');
-      setObjective('Temperature: 101.4°F, BP: 118/76 mmHg. Pharynx displays bilateral follicular exudate.');
-      setAssessment('Acute Streptococcal Pharyngitis (ICD-10: J02.0) - Differential: Mononucleosis');
-      setPlan('1. Amoxicillin 500mg PO TID x 10 days\n2. Paracetamol 650mg Q6H PRN for fever\n3. Throat swab culture ordered');
     }
   };
+
+  React.useEffect(() => {
+    if (aiResult?.status === 'completed' && aiResult.result) {
+      setSubjective(aiResult.result);
+    }
+  }, [aiResult]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,11 +128,11 @@ function NewEncounterForm() {
             <button
               type="button"
               onClick={handleAiAssist}
-              disabled={aiNotesMutation.isPending || isSaving}
+              disabled={isAiProcessing || isSaving}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-primary/30 bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors shadow-xs"
             >
-              {aiNotesMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-primary" />}
-              <span>{aiNotesMutation.isPending ? 'Analyzing Note...' : 'Auto-Fill with AI Assist'}</span>
+              {isAiProcessing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-primary" />}
+              <span>{isAiProcessing ? 'Analyzing Note...' : 'Auto-Fill with AI Assist'}</span>
             </button>
             <button
               onClick={handleSave}
@@ -142,6 +144,12 @@ function NewEncounterForm() {
             </button>
           </div>
         </div>
+
+        {aiResult?.status === 'failed' && (
+          <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3.5 py-2 text-xs text-rose-500">
+            AI Assist failed: {aiResult.error || 'Unknown error'}
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">

@@ -4,9 +4,17 @@ import { RealtimeGateway } from './realtime.gateway';
 describe('RealtimeGateway Tenant Isolation', () => {
   let gateway: RealtimeGateway;
   let mockServer: any;
+  let mockJwtService: any;
+  let mockConfigService: any;
 
   beforeEach(() => {
-    gateway = new RealtimeGateway();
+    mockJwtService = {
+      verifyAsync: vi.fn(),
+    };
+    mockConfigService = {
+      get: vi.fn((_key: string, fallback?: any) => fallback),
+    };
+    gateway = new RealtimeGateway(mockJwtService, mockConfigService);
     mockServer = {
       to: vi.fn().mockReturnThis(),
       emit: vi.fn(),
@@ -14,10 +22,10 @@ describe('RealtimeGateway Tenant Isolation', () => {
     gateway.server = mockServer;
   });
 
-  it('should disconnect client if no tenantId is provided', async () => {
+  it('should disconnect client if no auth token is provided', async () => {
     const mockClient = {
       id: 'client-1',
-      handshake: { headers: {}, auth: {} },
+      handshake: { headers: {}, auth: {}, query: {} },
       data: {},
       join: vi.fn(),
       disconnect: vi.fn(),
@@ -29,28 +37,51 @@ describe('RealtimeGateway Tenant Isolation', () => {
     expect(mockClient.join).not.toHaveBeenCalled();
   });
 
-  it('should join correct tenant and branch rooms', async () => {
+  it('should disconnect client if the auth token is invalid', async () => {
+    mockJwtService.verifyAsync.mockRejectedValue(new Error('invalid token'));
+
     const mockClient = {
       id: 'client-1',
-      handshake: {
-        headers: {
-          'x-tenant-id': 'tenant-A',
-          'x-branch-id': 'branch-X',
-          'x-user-id': 'user-1'
-        },
-        auth: {}
-      },
+      handshake: { headers: { authorization: 'Bearer bad-token' }, auth: {}, query: {} },
       data: {},
       join: vi.fn(),
+      disconnect: vi.fn(),
     } as any;
 
     await gateway.handleConnection(mockClient);
 
+    expect(mockClient.disconnect).toHaveBeenCalled();
+    expect(mockClient.join).not.toHaveBeenCalled();
+  });
+
+  it('should derive tenantId/userId from a verified JWT and join correct rooms', async () => {
+    mockJwtService.verifyAsync.mockResolvedValue({
+      sub: 'user-1',
+      email: 'user@example.com',
+      tenantId: 'tenant-A',
+      role: 'owner',
+    });
+
+    const mockClient = {
+      id: 'client-1',
+      handshake: {
+        headers: { authorization: 'Bearer good-token' },
+        auth: {},
+        query: { branchId: 'branch-X' },
+      },
+      data: {},
+      join: vi.fn(),
+      disconnect: vi.fn(),
+    } as any;
+
+    await gateway.handleConnection(mockClient);
+
+    expect(mockClient.disconnect).not.toHaveBeenCalled();
     expect(mockClient.data.tenantId).toBe('tenant-A');
     expect(mockClient.join).toHaveBeenCalledWith([
       'tenant:tenant-A',
       'tenant:tenant-A:branch:branch-X',
-      'tenant:tenant-A:user:user-1'
+      'tenant:tenant-A:user:user-1',
     ]);
   });
 

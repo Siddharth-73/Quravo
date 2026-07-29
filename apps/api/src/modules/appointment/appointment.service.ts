@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DatabaseService } from '../../database/database.service';
 import { QueueService } from '../../queue/queue.service';
@@ -10,6 +10,8 @@ import { AppointmentScheduledEvent, AppointmentStatusChangedEvent, AppointmentCa
 
 @Injectable()
 export class AppointmentService {
+  private readonly logger = new Logger(AppointmentService.name);
+
   constructor(
     private readonly dbService: DatabaseService,
     private readonly queueService: QueueService,
@@ -135,13 +137,23 @@ export class AppointmentService {
     this.eventEmitter.emit('appointment.scheduled', new AppointmentScheduledEvent(eventPayload));
 
     // Enqueue async queues
-    await this.queueService.addJob('notification-queue', {
-      tenantId,
-      type: 'appointment_confirmed',
-      recipientEmail: 'patient@example.com',
-      title: 'Appointment Confirmation',
-      message: `Your appointment ${appointmentNumber} is confirmed for ${startTime.toLocaleString()}`,
-    });
+    const [patient] = await db
+      .select()
+      .from(patients)
+      .where(and(eq(patients.tenantId, tenantId), eq(patients.id, dto.patientId)))
+      .limit(1);
+
+    if (patient?.email) {
+      await this.queueService.addJob('notification-queue', {
+        tenantId,
+        type: 'appointment_confirmed',
+        recipientEmail: patient.email,
+        title: 'Appointment Confirmation',
+        message: `Your appointment ${appointmentNumber} is confirmed for ${startTime.toLocaleString()}`,
+      });
+    } else {
+      this.logger.debug(`Skipping appointment confirmation notification for patient ${dto.patientId}: no email on file.`);
+    }
 
     return appointment;
   }

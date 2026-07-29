@@ -6,25 +6,28 @@ import { DataTable, ColumnDef } from '@/components/data-table/DataTable';
 import { Plus, User, Phone, Mail, FileText, Calendar, Download, Loader2, CheckCircle2 } from 'lucide-react';
 import { usePatients, Patient } from '@/domains/patients/hooks';
 import { useRequestExport, useExportStatus } from '@/domains/export/hooks';
+import { NewPatientModal } from '@/components/modals/NewPatientModal';
+import { API_BASE_URL } from '@/lib/api/client';
 
 export default function PatientsDirectoryPage() {
   const router = useRouter();
   const { data: patients = [], isLoading } = usePatients();
   
-  const [exportJobId, setExportJobId] = useState<string | null>(null);
+  const [exportId, setExportId] = useState<string | null>(null);
+  const [showNewPatientModal, setShowNewPatientModal] = useState(false);
   const requestExportMutation = useRequestExport();
-  const { data: exportStatus } = useExportStatus(exportJobId);
+  const { data: exportStatus } = useExportStatus(exportId);
 
   const handleExport = async () => {
     try {
-      const result = await requestExportMutation.mutateAsync({ format: 'csv', resource: 'patients' });
-      setExportJobId(result.jobId);
+      const result = await requestExportMutation.mutateAsync({ format: 'csv', entity: 'patients' });
+      setExportId(result.exportId);
     } catch (e) {
       console.error(e);
     }
   };
 
-  const isExporting = requestExportMutation.isPending || (exportStatus && exportStatus.status === 'pending');
+  const isExporting = requestExportMutation.isPending || (exportStatus && (exportStatus.status === 'pending' || exportStatus.status === 'processing'));
 
   const columns: ColumnDef<Patient>[] = [
     {
@@ -106,12 +109,12 @@ export default function PatientsDirectoryPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {exportStatus?.status === 'completed' && exportStatus.url ? (
+          {exportStatus?.status === 'completed' ? (
             <a
-              href={exportStatus.url}
+              href={`${API_BASE_URL}/export/${exportId}/download`}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => setExportJobId(null)}
+              onClick={() => setExportId(null)}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-700 transition-colors shadow-sm"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
@@ -128,7 +131,10 @@ export default function PatientsDirectoryPage() {
             </button>
           )}
 
-          <button className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-opacity shadow-sm">
+          <button
+            onClick={() => setShowNewPatientModal(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-opacity shadow-sm"
+          >
             <Plus className="w-3.5 h-3.5" />
             <span>Register New Patient</span>
           </button>
@@ -147,6 +153,15 @@ export default function PatientsDirectoryPage() {
           onRowClick={(patient) => router.push(`/patients/${patient.id}`)}
         />
       )}
+
+      <NewPatientModal
+        isOpen={showNewPatientModal}
+        onClose={() => setShowNewPatientModal(false)}
+        onPatientCreated={(patient) => {
+          // React Query will typically handle refetching if configured,
+          // but you could also do something with the newly returned patient here if needed.
+        }}
+      />
     </div>
   );
 }

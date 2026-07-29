@@ -4,6 +4,7 @@ import { Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import { parse } from 'json2csv';
 import PDFDocument from 'pdfkit';
+import { db, patients, invoices, eq } from '@quravo/db';
 
 @Injectable()
 export class ExportProcessor implements OnModuleInit {
@@ -48,8 +49,14 @@ export class ExportProcessor implements OnModuleInit {
     });
   }
 
-  private async updateStatus(exportId: string, tenantId: string, status: string, format: string) {
-    const payload = JSON.stringify({ tenantId, status, format, updatedAt: new Date().toISOString() });
+  private async updateStatus(exportId: string, tenantId: string, status: string, format: string, error?: string) {
+    const payload = JSON.stringify({
+      tenantId,
+      status,
+      format,
+      updatedAt: new Date().toISOString(),
+      ...(error ? { error } : {}),
+    });
     await this.redisConnection.set(`export:status:${exportId}`, payload, 'EX', 3600);
   }
 
@@ -62,15 +69,35 @@ export class ExportProcessor implements OnModuleInit {
     const { exportId, tenantId, entity, format } = job.data;
     await this.updateStatus(exportId, tenantId, 'processing', format);
 
-    const data = [
-      { id: '1', name: 'Eleanor Vance', status: 'Active' },
-      { id: '2', name: 'Marcus Aurelius', status: 'Active' },
-    ];
+    let data: Record<string, any>[];
+
+    // TODO: apply job.data.filters
+    if (entity === 'patients') {
+      data = await db
+        .select({
+          id: patients.id,
+          patientNumber: patients.patientNumber,
+          firstName: patients.firstName,
+          lastName: patients.lastName,
+          email: patients.email,
+          phone: patients.phone,
+          status: patients.status,
+        })
+        .from(patients)
+        .where(eq(patients.tenantId, tenantId));
+    } else if (entity === 'invoices') {
+      data = await db.select().from(invoices).where(eq(invoices.tenantId, tenantId));
+    } else {
+      const errorMessage = `Unsupported export entity: ${entity}`;
+      this.logger.warn(errorMessage);
+      await this.updateStatus(exportId, tenantId, 'failed', format, errorMessage);
+      return;
+    }
 
     let fileBuffer: Buffer;
 
     if (format === 'csv') {
-      const csv = parse(data);
+      const csv = data.length ? parse(data) : '';
       fileBuffer = Buffer.from(csv);
     } else if (format === 'pdf') {
       fileBuffer = await new Promise((resolve) => {
@@ -82,8 +109,11 @@ export class ExportProcessor implements OnModuleInit {
         doc.fontSize(20).text(`Export: ${entity}`, { align: 'center' });
         doc.moveDown();
         
-        data.forEach((item) => {
-          doc.fontSize(12).text(`ID: ${item.id} | Name: ${item.name} | Status: ${item.status}`);
+        data.forEach((row) => {
+          const line = Object.entries(row)
+            .map(([key, value]) => `${key}: ${value ?? 'N/A'}`)
+            .join(' | ');
+          doc.fontSize(12).text(line);
           doc.moveDown(0.5);
         });
         

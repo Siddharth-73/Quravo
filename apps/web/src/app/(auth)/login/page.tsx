@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
 import { usePermissions, PermissionCode } from '@/providers/PermissionProvider';
 import { useFeatureFlags } from '@/providers/FeatureFlagProvider';
-import { DEMO_CREDENTIALS, CredentialUser, fullFeatures } from '@/lib/auth/credentials';
-import { Lock, Mail, Building2, ArrowRight, AlertCircle, ShieldCheck, Key, Check } from 'lucide-react';
+import { DEMO_CREDENTIALS, fullFeatures } from '@/lib/auth/credentials';
+import { Lock, Mail, Building2, ArrowRight, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api/client';
 
@@ -70,19 +70,25 @@ const getDashboardForRole = (role: string): string => {
     case 'super_admin':
       return '/super-admin';
     case 'doctor':
+    case 'Lead Physician':
       return '/dashboards/doctor';
     case 'nurse':
+    case 'Triage Head Nurse':
       return '/dashboards/nurse';
     case 'receptionist':
+    case 'Front Desk Receptionist':
       return '/dashboards/receptionist';
     case 'pharmacist':
+    case 'Chief Pharmacist':
       return '/dashboards/pharmacist';
     case 'patient':
+    case 'Patient User':
       return '/dashboards/patient';
     case 'owner':
     case 'admin':
+    case 'Clinic Owner & Director':
     default:
-      return '/dashboard';
+      return '/dashboards/admin';
   }
 };
 
@@ -92,28 +98,42 @@ export default function LoginPage() {
   const { setPermissions } = usePermissions();
   const { setFeatures } = useFeatureFlags();
 
-  const [email, setEmail] = useState('doctor@clinic.com');
-  const [password, setPassword] = useState('doctor123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [subdomain, setSubdomain] = useState('apexhealth');
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const fillCredentials = (cred: CredentialUser) => {
-    setEmail(cred.email);
-    setPassword(cred.password);
-    if (cred.roleKey !== 'super_admin') {
-      setSubdomain('apexhealth');
-    }
-    setErrorMessage('');
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     setLoading(true);
 
+    // 1. Check against defined DEMO registry for instant authentication
+    const matchedDemo = DEMO_CREDENTIALS.find(
+      (c) => c.email.toLowerCase() === email.toLowerCase() && c.password === password
+    );
+
+    if (matchedDemo) {
+      setTimeout(() => {
+        setUser({
+          id: `usr-${matchedDemo.roleKey}`,
+          email: matchedDemo.email,
+          firstName: matchedDemo.firstName,
+          lastName: matchedDemo.lastName,
+          role: matchedDemo.roleTitle,
+        });
+
+        setPermissions(matchedDemo.permissions);
+        setFeatures(matchedDemo.features);
+
+        router.push(matchedDemo.targetDashboard);
+      }, 300);
+      return;
+    }
+
+    // 2. Otherwise attempt live NestJS API authentication
     try {
-      // 1. Attempt dynamic authentication against NestJS API
       const authData = await apiFetch<LoginResponse>('/auth/login', {
         method: 'POST',
         body: JSON.stringify({
@@ -129,30 +149,26 @@ export default function LoginPage() {
       if (authData.user.role === 'super_admin') {
         clientPermissions = ['admin:access'];
       } else {
-        // 2. Fetch roles and permissions for this tenant
         const rolesData = await apiFetch<{ name: string; permissions: string[] }[]>('/rbac/roles', {
           token: authData.accessToken,
           headers: {
             'X-Tenant-ID': authData.user.tenantId,
           },
-        });
+        }).catch(() => []);
 
-        // 3. Fetch enabled feature modules
         const modulesData = await apiFetch<Record<string, boolean>>('/rbac/modules', {
           token: authData.accessToken,
           headers: {
             'X-Tenant-ID': authData.user.tenantId,
           },
-        });
+        }).catch(() => ({}));
 
-        // Map dynamic backend permissions & modules to client formats
-        const userRole = rolesData.find((r) => r.name === authData.user.role);
+        const userRole = Array.isArray(rolesData) ? rolesData.find((r) => r.name === authData.user.role) : undefined;
         const rawPermissions = userRole ? userRole.permissions : [];
         clientPermissions = expandPermissions(rawPermissions);
         clientFeatures = { ...fullFeatures, ...modulesData };
       }
 
-      // 4. Set frontend contexts
       setUser({
         id: authData.user.id,
         email: authData.user.email,
@@ -164,12 +180,11 @@ export default function LoginPage() {
       setPermissions(clientPermissions);
       setFeatures(clientFeatures);
 
-      // Redirect to correct dashboard
       const targetDashboard = getDashboardForRole(authData.user.role);
       router.push(targetDashboard);
     } catch (apiError: any) {
       setErrorMessage(
-        apiError.message || 'Invalid email address or password. Try a demo quick-fill option below.'
+        apiError.message || 'Invalid email address or password. Please check your credentials.'
       );
       setLoading(false);
     }
@@ -180,12 +195,10 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground font-bold text-xl shadow-lg mb-2">
-            Q
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Clinic Staff Sign In</h1>
+          <img src="/icon.png" alt="Quravo" className="h-12 w-12 object-contain mx-auto mb-2" />
+          <h1 className="text-2xl font-bold tracking-tight text-foreground font-sans">Clinic Staff Sign In</h1>
           <p className="text-xs text-muted-foreground">
-            Enter valid credentials to access your role-specific dashboard
+            Enter your credentials to access your workspace
           </p>
         </div>
 
@@ -242,6 +255,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••••"
                   className="w-full bg-transparent text-foreground focus:outline-none font-mono"
                 />
               </div>
@@ -256,32 +270,6 @@ export default function LoginPage() {
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </form>
-
-          {/* Quick Demo Credential Helper Chips */}
-          <div className="space-y-2 pt-2 border-t border-border">
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-              <span className="font-semibold uppercase tracking-wider text-[10px]">Quick Demo Credentials</span>
-              <span className="text-[10px]">Click to auto-fill</span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-[11px]">
-              {DEMO_CREDENTIALS.map((cred) => (
-                <button
-                  key={cred.email}
-                  type="button"
-                  onClick={() => fillCredentials(cred)}
-                  className={`p-2 rounded-lg border text-left transition-colors flex items-center justify-between ${
-                    cred.isImmutable
-                      ? 'bg-purple-500/10 border-purple-500/30 text-purple-600 dark:text-purple-400 font-bold'
-                      : 'bg-muted/30 border-border hover:bg-muted text-foreground'
-                  }`}
-                >
-                  <span className="truncate">{cred.roleTitle}</span>
-                  {email === cred.email && <Check className="w-3 h-3 text-primary shrink-0 ml-1" />}
-                </button>
-              ))}
-            </div>
-          </div>
 
           <div className="text-center pt-2 border-t border-border text-[11px] text-muted-foreground">
             Don't have a clinic account?{' '}

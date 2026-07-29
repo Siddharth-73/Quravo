@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { db, invoices, invoiceItems, eq, and, sql } from '@quravo/db';
+import { db, invoices, invoiceItems, patients, eq, and, sql } from '@quravo/db';
 import { CreateInvoiceDto } from '../dto/create-invoice.dto';
 
 @Injectable()
@@ -81,21 +81,36 @@ export class InvoicesService {
   }
   
   async getInvoice(tenantId: string, invoiceId: string) {
-    const [invoice] = await db.select().from(invoices)
+    const [row] = await db
+      .select({ invoice: invoices, patient: patients })
+      .from(invoices)
+      .leftJoin(patients, and(eq(patients.id, invoices.patientId), eq(patients.tenantId, tenantId)))
       .where(and(eq(invoices.tenantId, tenantId), eq(invoices.id, invoiceId)))
       .limit(1);
-      
-    if (!invoice) throw new NotFoundException('Invoice not found');
-    
+
+    if (!row) throw new NotFoundException('Invoice not found');
+
     const items = await db.select().from(invoiceItems)
       .where(and(eq(invoiceItems.tenantId, tenantId), eq(invoiceItems.invoiceId, invoiceId)));
-      
-    return { ...invoice, items };
+
+    return {
+      ...row.invoice,
+      patientName: row.patient ? `${row.patient.firstName} ${row.patient.lastName}` : 'Unknown Patient',
+      items,
+    };
   }
   
   async listInvoices(tenantId: string) {
-    return db.select().from(invoices)
+    const rows = await db
+      .select({ invoice: invoices, patient: patients })
+      .from(invoices)
+      .leftJoin(patients, and(eq(patients.id, invoices.patientId), eq(patients.tenantId, tenantId)))
       .where(eq(invoices.tenantId, tenantId))
       .orderBy(sql`${invoices.createdAt} DESC`);
+
+    return rows.map((row) => ({
+      ...row.invoice,
+      patientName: row.patient ? `${row.patient.firstName} ${row.patient.lastName}` : 'Unknown Patient',
+    }));
   }
 }

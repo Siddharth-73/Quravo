@@ -181,11 +181,24 @@ export function useCreatePrescription() {
 }
 
 // AI Integration Hooks
+export interface AiJobQueuedResponse {
+  status: string;
+  jobId: string;
+  message: string;
+}
+
+export interface AiResultResponse {
+  status: 'pending' | 'completed' | 'failed';
+  result?: string;
+  error?: string;
+}
+
 export function useAiSummary() {
   return useMutation({
-    mutationFn: async (encounterId: string) => {
-      return await apiFetch<{ summary: string }>(`/emr/encounters/${encounterId}/ai/summarize`, {
+    mutationFn: async (patientId: string) => {
+      return await apiFetch<AiJobQueuedResponse>(`/ai/patient-summary`, {
         method: 'POST',
+        body: JSON.stringify({ patientId }),
       });
     },
   });
@@ -193,11 +206,24 @@ export function useAiSummary() {
 
 export function useAiNotes() {
   return useMutation({
-    mutationFn: async (audioOrTranscript: any) => {
-      return await apiFetch<{ soap: any }>(`/emr/ai/notes`, {
+    mutationFn: async ({ appointmentId, rawNotes }: { appointmentId: string; rawNotes: string }) => {
+      return await apiFetch<AiJobQueuedResponse>(`/ai/consultation-notes`, {
         method: 'POST',
-        body: JSON.stringify(audioOrTranscript),
+        body: JSON.stringify({ appointmentId, rawNotes }),
       });
+    },
+  });
+}
+
+export function useAiResult(jobId: string | null) {
+  return useQuery({
+    queryKey: emrKeys.aiResult(jobId as string),
+    queryFn: async () => {
+      return await apiFetch<AiResultResponse>(`/ai/result/${jobId}`);
+    },
+    enabled: !!jobId,
+    refetchInterval: (query) => {
+      return query.state.data?.status === 'completed' || query.state.data?.status === 'failed' ? false : 2000;
     },
   });
 }

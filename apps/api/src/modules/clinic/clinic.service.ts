@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { DatabaseService } from '../../database/database.service';
 import { QueueService } from '../../queue/queue.service';
 import { TenantCacheService } from '../tenant/tenant-cache.service';
@@ -24,7 +25,8 @@ export class ClinicService {
   constructor(
     private readonly dbService: DatabaseService,
     private readonly queueService: QueueService,
-    private readonly tenantCacheService: TenantCacheService
+    private readonly tenantCacheService: TenantCacheService,
+    private readonly configService: ConfigService
   ) {}
 
   private hashToken(token: string): string {
@@ -214,13 +216,16 @@ export class ClinicService {
       .returning();
 
     // Enqueue staff invite email to BullMQ
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
+    const parsedUrl = new URL(frontendUrl);
+    const inviteUrl = `${parsedUrl.protocol}//${tenant.slug}.${parsedUrl.host}/accept-invite?token=${rawToken}`;
     await this.queueService.addJob('staff-invite', {
       type: 'staff-invite',
       to: dto.email.toLowerCase(),
       subject: `Invitation to join ${tenant.name}`,
       clinicName: tenant.name,
       role: dto.role,
-      inviteUrl: `http://${tenant.slug}.localhost:3000/accept-invite?token=${rawToken}`,
+      inviteUrl,
     });
 
     return {

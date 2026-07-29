@@ -19,6 +19,7 @@ import { BillingModule } from './modules/billing/billing.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { PushModule } from './modules/push/push.module';
+import { NotificationModule } from './modules/notification/notification.module';
 import { AiModule } from './modules/ai/ai.module';
 import { ExportModule } from './modules/export/export.module';
 import { PharmacyModule } from './modules/pharmacy/pharmacy.module';
@@ -30,6 +31,7 @@ import { HrModule } from './modules/hr/hr.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
 import { BedManagementModule } from './modules/bed-management/bed-management.module';
 import { PatientPlatformModule } from './modules/patient-platform/patient-platform.module';
+import { AuditModule } from './modules/audit/audit.module';
 import { CorrelationContextMiddleware } from './common/middleware/correlation-context.middleware';
 import { TenantResolverMiddleware } from './common/middleware/tenant-resolver.middleware';
 import { RequestContext } from '@quravo/common';
@@ -74,6 +76,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
     RealtimeModule,
     AnalyticsModule,
     PushModule,
+    NotificationModule,
     AiModule,
     ExportModule,
     PharmacyModule,
@@ -85,6 +88,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
     PayrollModule,
     BedManagementModule,
     PatientPlatformModule,
+    AuditModule,
     ThrottlerModule.forRoot([{
       ttl: 60000,
       limit: 300,

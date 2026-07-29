@@ -26,6 +26,7 @@ export class SuperAdminService {
     let [user] = await db.select().from(users).where(eq(users.email, dto.email.toLowerCase())).limit(1);
 
     if (!user) {
+      // TODO: force password reset on first login instead of a shared default password
       const passwordHash = await argon2.hash('Quravo@123!');
       
       const [newUser] = await db

@@ -10,6 +10,7 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
@@ -76,14 +77,11 @@ export class PatientController {
     const tenantId = (req as any).user.tenantId;
     const userId = (req as any).user.userId;
 
-    const sampleFile = file || {
-      buffer: Buffer.from('Mock file content for testing attachment upload'),
-      originalname: 'lab_report_sample.pdf',
-      mimetype: 'application/pdf',
-      size: 1024,
-    };
+    if (!file) {
+      throw new BadRequestException('No file was provided in the upload request.');
+    }
 
-    return this.patientService.uploadAttachment(tenantId, id, userId, sampleFile, category || 'lab_result');
+    return this.patientService.uploadAttachment(tenantId, id, userId, file, category || 'lab_result');
   }
 
   @Get(':id/attachments')

@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useTenant } from '@/providers/TenantProvider';
-import { Settings, Palette, Globe, Building2, Save, Check } from 'lucide-react';
+import { Settings, Palette, Globe, Building2, Save, Check, Loader2 } from 'lucide-react';
+import { apiFetch } from '@/lib/api/client';
 
 export default function SettingsPage() {
   const { theme, updateCustomTheme } = useTheme();
@@ -15,10 +16,28 @@ export default function SettingsPage() {
   const [primaryColor, setPrimaryColor] = useState('221.2 83.2% 53.3%');
   const [saved, setSaved] = useState(false);
 
-  const handleSave = () => {
-    updateCustomTheme({ primary: primaryColor });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await apiFetch('/clinic/branding', {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: clinicName,
+          subdomain,
+          customDomain,
+          primaryColor
+        }),
+      });
+      updateCustomTheme({ primary: primaryColor });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (error) {
+      console.error('Failed to save branding settings', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -33,10 +52,11 @@ export default function SettingsPage() {
 
         <button
           onClick={handleSave}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-opacity shadow-sm"
+          disabled={isSaving}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-opacity shadow-sm disabled:opacity-50"
         >
-          {saved ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
-          <span>{saved ? 'Saved Changes!' : 'Save Settings'}</span>
+          {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : saved ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
+          <span>{isSaving ? 'Saving...' : saved ? 'Saved Changes!' : 'Save Settings'}</span>
         </button>
       </div>
 

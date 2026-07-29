@@ -48,6 +48,6 @@ export class SubscriptionController {
     @Headers('stripe-signature') signature: string,
     @Body() payload: any
   ) {
-    return this.subscriptionService.handleWebhook(signature || 'mock-sig', payload);
+    return this.subscriptionService.handleWebhook(signature, payload);
   }
 }

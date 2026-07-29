@@ -1,16 +1,32 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Mail, ArrowRight, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { Mail, ArrowRight, CheckCircle2, ArrowLeft, Loader2 } from 'lucide-react';
+import { apiFetch } from '@/lib/api/client';
 import Link from 'next/link';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isPending, setIsPending] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setIsPending(true);
+    setErrorMsg('');
+    try {
+      await apiFetch('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+      setSubmitted(true);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to send reset email');
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return (
@@ -29,6 +45,11 @@ export default function ForgotPasswordPage() {
         <div className="rounded-2xl border border-border bg-card p-6 shadow-xl space-y-4">
           {!submitted ? (
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+              {errorMsg && (
+                <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 p-3 text-xs text-rose-600 dark:text-rose-400 font-medium">
+                  {errorMsg}
+                </div>
+              )}
               <div className="space-y-1">
                 <label className="font-semibold text-foreground">Email Address</label>
                 <div className="flex items-center rounded-lg border border-border bg-muted/30 px-3 py-2">
@@ -46,10 +67,20 @@ export default function ForgotPasswordPage() {
 
               <button
                 type="submit"
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-xs hover:opacity-90 transition-opacity shadow-sm mt-2"
+                disabled={isPending}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-xs hover:opacity-90 transition-opacity shadow-sm mt-2 disabled:opacity-50"
               >
-                <span>Send Reset Link</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                {isPending ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Sending...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Send Reset Link</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </>
+                )}
               </button>
             </form>
           ) : (

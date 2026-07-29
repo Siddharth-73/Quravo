@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Sparkles, ShieldCheck, Zap, ArrowRight, Building2, Stethoscope, Users, Check, Globe, LayoutDashboard, ChevronRight } from 'lucide-react';
+import { Sparkles, ShieldCheck, Zap, ArrowRight, Building2, Stethoscope, Users, Check, Pill, TestTube, CreditCard, LayoutDashboard, ChevronRight, Activity, Calendar } from 'lucide-react';
 
 export default function LandingPage() {
   return (
@@ -10,19 +10,14 @@ export default function LandingPage() {
       {/* Top Navbar */}
       <header className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b border-border bg-card/80 px-6 md:px-12 backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-base shadow-md">
-            Q
-          </div>
-          <span className="font-bold text-lg tracking-tight text-foreground">
-            Quravo<span className="text-primary font-mono text-xs ml-1">SaaS</span>
-          </span>
+          <img src="/logo.png" alt="Quravo Health" className="h-9 w-auto object-contain" />
         </div>
 
         <nav className="hidden md:flex items-center gap-8 text-xs font-semibold text-muted-foreground">
-          <a href="#features" className="hover:text-foreground transition-colors">Features</a>
-          <a href="#pricing" className="hover:text-foreground transition-colors">Pricing Tiers</a>
-          <a href="#white-label" className="hover:text-foreground transition-colors">White-Labeling</a>
-          <Link href="/book" className="hover:text-foreground transition-colors">Patient Portal</Link>
+          <a href="#services" className="hover:text-foreground transition-colors">Our Services</a>
+          <Link href="/features" className="hover:text-foreground transition-colors">Platform Features</Link>
+          <Link href="/pricing" className="hover:text-foreground transition-colors">Pricing & Plans</Link>
+          <Link href="/book" className="hover:text-foreground transition-colors">Patient Booking</Link>
         </nav>
 
         <div className="flex items-center gap-3 text-xs">
@@ -47,15 +42,15 @@ export default function LandingPage() {
       <section className="relative pt-20 pb-16 md:pt-28 md:pb-24 px-6 md:px-12 text-center max-w-5xl mx-auto space-y-6">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-primary/20 bg-primary/10 text-primary text-xs font-semibold shadow-xs animate-in fade-in duration-300">
           <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-          <span>The "Shopify & Odoo" Monolith Monorepo for Healthcare</span>
+          <span>Complete Healthcare SaaS Platform</span>
         </div>
 
         <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-foreground leading-[1.15]">
-          White-Label Operating System for <span className="bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">Clinics & Hospital Chains</span>
+          All-in-One Operating System for <span className="bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">Clinics & Medical Groups</span>
         </h1>
 
         <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-          Scale effortlessly from individual practitioners to multi-branch hospital chains. Custom white-label branding, AI SOAP scribe, electronic prescriptions, pharmacy, and laboratory — all without code changes.
+          Scale effortlessly from individual doctors to multi-branch medical centers. AI clinical SOAP notes, electronic prescriptions, patient booking, pharmacy fulfillment, and POS billing — all in one place.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4 text-xs">
@@ -63,7 +58,7 @@ export default function LandingPage() {
             href="/signup"
             className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity shadow-lg"
           >
-            <span>Provision Clinic Tenant</span>
+            <span>Register Practice</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
 
@@ -77,41 +72,80 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section id="features" className="py-16 px-6 md:px-12 max-w-6xl mx-auto space-y-10 border-t border-border">
+      {/* Detailed Services Section */}
+      <section id="services" className="py-16 px-6 md:px-12 max-w-6xl mx-auto space-y-10 border-t border-border">
         <div className="text-center space-y-2">
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Modular Monolith Built for Scale</h2>
-          <p className="text-xs md:text-sm text-muted-foreground">Every tenant gets their own subdomains, RBAC roles, and modular à la carte capabilities.</p>
+          <div className="text-xs font-bold uppercase tracking-wider text-primary">Comprehensive Healthcare Solutions</div>
+          <h2 className="text-2xl md:text-4xl font-extrabold tracking-tight text-foreground">Detailed Services We Provide</h2>
+          <p className="text-xs md:text-sm text-muted-foreground max-w-2xl mx-auto">
+            Tailored digital workflows for every healthcare role across your practice operations.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-xs space-y-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-xs">
+          {/* Service 1 */}
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-3 shadow-xs hover:border-primary/50 transition-colors">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Stethoscope className="w-5 h-5" />
             </div>
-            <h3 className="font-bold text-base text-foreground">AI Clinical SOAP Scribe</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Auto-generate Subjective, Objective, Assessment (ICD-10), and Plan notes with built-in AI assistance.
+            <h3 className="font-bold text-base text-foreground">AI Clinical Encounter & SOAP Notes</h3>
+            <p className="text-muted-foreground leading-relaxed">
+              Auto-generate Subjective, Objective, ICD-10 Assessment, and Treatment Plans with real-time AI clinical assistance. Save hours on patient charting.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-xs space-y-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold">
+          {/* Service 2 */}
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-3 shadow-xs hover:border-primary/50 transition-colors">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-base text-foreground">Smart Appointment Scheduling & Booking</h3>
+            <p className="text-muted-foreground leading-relaxed">
+              Public self-service booking portal for patients, multi-doctor calendar slot picker, walk-in queue management, and automated SMS/email reminders.
+            </p>
+          </div>
+
+          {/* Service 3 */}
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-3 shadow-xs hover:border-primary/50 transition-colors">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <CreditCard className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-base text-foreground">POS Billing & Receipt Collection</h3>
+            <p className="text-muted-foreground leading-relaxed">
+              Front-desk checkout terminal for instant consultation invoices, payment status tracking (cash, card, gateway), and printable digital receipts.
+            </p>
+          </div>
+
+          {/* Service 4 */}
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-3 shadow-xs hover:border-primary/50 transition-colors">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <Pill className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-base text-foreground">Pharmacy Dispensing & Inventory</h3>
+            <p className="text-muted-foreground leading-relaxed">
+              Fulfill electronic prescriptions directly from doctor notes, track medication stock balances, manage dosage safety, and set reorder alerts.
+            </p>
+          </div>
+
+          {/* Service 5 */}
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-3 shadow-xs hover:border-primary/50 transition-colors">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400">
+              <TestTube className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-base text-foreground">Laboratory Diagnostics Management</h3>
+            <p className="text-muted-foreground leading-relaxed">
+              Log lab test orders, track sample collection, upload diagnostic result PDFs, and notify doctors when lab reports require clinical review.
+            </p>
+          </div>
+
+          {/* Service 6 */}
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-3 shadow-xs hover:border-primary/50 transition-colors">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
               <Building2 className="w-5 h-5" />
             </div>
-            <h3 className="font-bold text-base text-foreground">Multi-Branch Architecture</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Seamlessly manage practitioner schedules, patient transfers, and stock balances across multiple clinic locations.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-xs space-y-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <h3 className="font-bold text-base text-foreground">Strict RBAC & Audit Ledger</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Granular permission guards ensure doctors, receptionists, and pharmacists only access authorized data.
+            <h3 className="font-bold text-base text-foreground">Multi-Branch Clinic Operations</h3>
+            <p className="text-muted-foreground leading-relaxed">
+              Seamlessly connect multiple clinic locations under one dashboard. Route staff, assign practitioners, and monitor revenue across all locations.
             </p>
           </div>
         </div>
@@ -173,7 +207,7 @@ export default function LandingPage() {
               <div className="text-3xl font-extrabold text-foreground">$399 <span className="text-xs text-muted-foreground font-normal">/mo</span></div>
               <p className="text-xs text-muted-foreground">Full hospital operations with à la carte modules.</p>
               <ul className="space-y-2 text-xs">
-                {['Everything in Growth', 'Pharmacy Dispensing Queue', 'Laboratory Diagnostics', 'HR & Staff Management', 'Custom Domain Binding'].map((item) => (
+                {['Everything in Growth', 'Pharmacy Dispensing Queue', 'Laboratory Diagnostics', 'HR & Staff Management', 'Bed Management'].map((item) => (
                   <li key={item} className="flex items-center gap-2 text-foreground">
                     <Check className="w-4 h-4 text-purple-500" /> {item}
                   </li>
@@ -189,7 +223,10 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-border bg-card/60 py-8 px-6 md:px-12 text-center text-xs text-muted-foreground space-y-2">
-        <div className="font-bold text-foreground">Quravo Healthcare SaaS Platform</div>
+        <div className="flex items-center justify-center gap-2 font-bold text-foreground">
+          <img src="/icon.png" alt="Quravo" className="h-5 w-5 object-contain" />
+          <span>Quravo Healthcare Platform</span>
+        </div>
         <div>HIPAA & GDPR Compliant Monolith Architecture • Built with Next.js 15, NestJS & PostgreSQL</div>
       </footer>
     </div>

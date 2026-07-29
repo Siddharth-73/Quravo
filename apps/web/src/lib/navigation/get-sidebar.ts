@@ -97,6 +97,13 @@ const masterNavGroups: NavGroup[] = [
         requiredPermissions: ['admin:access'],
       },
       {
+        id: 'approvals',
+        title: 'Staff Join Approvals',
+        href: '/staff/approvals',
+        iconName: 'UserCheck',
+        requiredPermissions: ['admin:access'],
+      },
+      {
         id: 'roles',
         title: 'RBAC Roles & Modules',
         href: '/settings/roles',

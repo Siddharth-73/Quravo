@@ -121,6 +121,10 @@ export class SubscriptionService {
 
   // --- WEBHOOK HANDLING ---
   async handleWebhook(signature: string, payload: any) {
+    if (!signature) {
+      throw new BadRequestException('Missing webhook signature');
+    }
+
     const isValid = this.billingProvider.verifyWebhook(signature, payload);
     if (!isValid) {
       throw new BadRequestException('Invalid webhook signature');

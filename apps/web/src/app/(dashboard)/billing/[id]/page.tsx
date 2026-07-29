@@ -1,24 +1,33 @@
 'use client';
-import React from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+import { useParams } from 'next/navigation';
 import { useInvoice, useCreatePayment } from '@/domains/billing/hooks';
-import { ArrowLeft, Loader2, CreditCard } from 'lucide-react';
+import { RazorpayCheckoutButton } from '@/components/billing/RazorpayCheckoutButton';
+import { ArrowLeft, Loader2, Banknote, CheckCircle2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+
+const PAID_STATUSES = ['paid'];
 
 export default function InvoiceDetailsPage() {
   const params = useParams();
-  const router = useRouter();
   const invoiceId = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
-  
-  const { data: invoice, isLoading } = useInvoice(invoiceId);
-  const createPaymentMutation = useCreatePayment();
 
-  const handlePayment = async () => {
+  const { data: invoice, isLoading, refetch } = useInvoice(invoiceId);
+  const createPaymentMutation = useCreatePayment();
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleRecordCashPayment = async () => {
     if (!invoice) return;
+    setFeedback(null);
     try {
-      await createPaymentMutation.mutateAsync({ invoiceId, amount: invoice.amount });
-    } catch (e) {
-      console.error(e);
+      await createPaymentMutation.mutateAsync({
+        invoiceId: invoice.id,
+        amount: parseFloat(invoice.amountDue),
+        paymentMethod: 'cash',
+      });
+      setFeedback({ type: 'success', text: 'Cash payment recorded.' });
+    } catch (e: any) {
+      setFeedback({ type: 'error', text: e.message || 'Failed to record payment.' });
     }
   };
 
@@ -42,6 +51,9 @@ export default function InvoiceDetailsPage() {
     );
   }
 
+  const amountDue = parseFloat(invoice.amountDue);
+  const isPaid = PAID_STATUSES.includes(invoice.status);
+
   return (
     <div className="p-8 max-w-5xl space-y-6">
       <Link href="/billing" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground font-medium">
@@ -51,63 +63,104 @@ export default function InvoiceDetailsPage() {
 
       <div className="flex justify-between items-center mb-6">
         <div>
-           <h1 className="text-2xl font-bold tracking-tight">Invoice {invoice.id}</h1>
-           <p className="text-sm text-muted-foreground">Patient: {invoice.patientName}</p>
+          <h1 className="text-2xl font-bold tracking-tight">Invoice {invoice.invoiceNumber}</h1>
+          <p className="text-sm text-muted-foreground">Patient: {invoice.patientName}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <span className={`text-xs font-semibold px-2.5 py-1 rounded-md border ${
-            invoice.status === 'Paid'
+        <span
+          className={`text-xs font-semibold px-2.5 py-1 rounded-md border capitalize ${
+            isPaid
               ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
               : 'bg-amber-500/10 text-amber-600 border-amber-500/20'
-          }`}>
-            {invoice.status}
-          </span>
-          {invoice.status !== 'Paid' && (
-            <button
-              onClick={handlePayment}
-              disabled={createPaymentMutation.isPending}
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-md font-medium text-sm disabled:opacity-50 transition-colors shadow-sm"
-            >
-              {createPaymentMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-              <span>{createPaymentMutation.isPending ? 'Processing...' : `Record Payment ($${invoice.amount.toFixed(2)})`}</span>
-            </button>
-          )}
-        </div>
+          }`}
+        >
+          {invoice.status.replace('_', ' ')}
+        </span>
       </div>
+
+      {feedback && (
+        <div
+          className={`flex items-center gap-2 rounded-lg p-3 text-xs font-medium ${
+            feedback.type === 'success'
+              ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+              : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
+          }`}
+        >
+          {feedback.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          {feedback.text}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 border border-border rounded-xl bg-card p-6 shadow-xs">
           <h2 className="text-lg font-semibold mb-4 text-foreground">Line Items</h2>
-          <div className="text-sm text-foreground space-y-4">
-             <div className="flex justify-between items-center p-3 rounded-lg border border-border bg-muted/20">
-               <div>
-                 <div className="font-medium">{invoice.items}</div>
-                 <div className="text-xs text-muted-foreground mt-1">Rendered on {new Date(invoice.date).toLocaleDateString()}</div>
-               </div>
-               <div className="font-mono">${invoice.amount.toFixed(2)}</div>
-             </div>
+          <div className="text-sm text-foreground space-y-3">
+            {invoice.items && invoice.items.length > 0 ? (
+              invoice.items.map((item) => (
+                <div key={item.id} className="flex justify-between items-center p-3 rounded-lg border border-border bg-muted/20">
+                  <div>
+                    <div className="font-medium">{item.description}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Qty {item.quantity} &times; ${parseFloat(item.unitPrice).toFixed(2)}
+                      {parseFloat(item.taxRate) > 0 && ` (+${item.taxRate}% tax)`}
+                    </div>
+                  </div>
+                  <div className="font-mono">${parseFloat(item.total).toFixed(2)}</div>
+                </div>
+              ))
+            ) : (
+              <div className="text-muted-foreground text-xs">No line items.</div>
+            )}
           </div>
         </div>
-        
-        <div className="border border-border rounded-xl bg-card p-6 shadow-xs h-fit">
-          <h2 className="text-lg font-semibold mb-4 text-foreground">Summary</h2>
+
+        <div className="border border-border rounded-xl bg-card p-6 shadow-xs h-fit space-y-4">
+          <h2 className="text-lg font-semibold text-foreground">Summary</h2>
           <div className="space-y-3 text-sm text-muted-foreground">
             <div className="flex justify-between">
               <span>Subtotal:</span>
-              <span>${invoice.amount.toFixed(2)}</span>
+              <span>${parseFloat(invoice.subtotal).toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span>Tax (0%):</span>
-              <span>$0.00</span>
+              <span>Tax:</span>
+              <span>${parseFloat(invoice.taxAmount).toFixed(2)}</span>
             </div>
+            {parseFloat(invoice.discountAmount) > 0 && (
+              <div className="flex justify-between">
+                <span>Discount:</span>
+                <span>-${parseFloat(invoice.discountAmount).toFixed(2)}</span>
+              </div>
+            )}
             <div className="flex justify-between font-bold text-foreground pt-3 border-t border-border text-base">
-              <span>Total Due:</span>
-              <span className="font-mono text-primary">${invoice.amount.toFixed(2)}</span>
+              <span>Amount Due:</span>
+              <span className="font-mono text-primary">${amountDue.toFixed(2)}</span>
             </div>
           </div>
+
+          {!isPaid && (
+            <div className="space-y-2 pt-2 border-t border-border">
+              <RazorpayCheckoutButton
+                invoiceId={invoice.id}
+                invoiceNumber={invoice.invoiceNumber}
+                amountDue={amountDue}
+                patientName={invoice.patientName}
+                onPaymentSuccess={() => {
+                  setFeedback({ type: 'success', text: 'Payment received via Razorpay.' });
+                  refetch();
+                }}
+                onPaymentError={(msg) => setFeedback({ type: 'error', text: msg })}
+              />
+              <button
+                onClick={handleRecordCashPayment}
+                disabled={createPaymentMutation.isPending}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-border bg-card text-foreground font-medium text-xs hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                {createPaymentMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Banknote className="w-4 h-4" />}
+                <span>Record Cash Payment</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
-

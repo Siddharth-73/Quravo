@@ -1,17 +1,35 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Plus, Check, Save, Layers, Loader2 } from 'lucide-react';
+import { ShieldCheck, Plus, Check, Save, Layers, Loader2, X } from 'lucide-react';
 import { useFeatureFlags } from '@/providers/FeatureFlagProvider';
-import { useRoles, useModules, useToggleModule } from '@/domains/rbac/hooks';
+import { useRoles, useModules, useToggleModule, useCreateRole } from '@/domains/rbac/hooks';
 
 export default function RolesAndModulesPage() {
   const { features, setFeatures } = useFeatureFlags();
   const { data: rolesList = [], isLoading: isLoadingRoles } = useRoles();
   const { data: modulesList = [], isLoading: isLoadingModules } = useModules();
   const toggleModuleMutation = useToggleModule();
+  const createRoleMutation = useCreateRole();
   
   const [saved, setSaved] = useState(false);
+  const [showCreateRoleModal, setShowCreateRoleModal] = useState(false);
+  const [newRoleData, setNewRoleData] = useState({ name: '', description: '' });
+
+  const handleCreateRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createRoleMutation.mutateAsync({
+        name: newRoleData.name,
+        description: newRoleData.description,
+        permissions: ['read:appointments', 'read:patients'], // Basic default permissions
+      });
+      setShowCreateRoleModal(false);
+      setNewRoleData({ name: '', description: '' });
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   // Sync backend modules with frontend Context
   useEffect(() => {
@@ -116,7 +134,10 @@ export default function RolesAndModulesPage() {
             <h3 className="font-bold text-sm text-foreground">Clinic RBAC Roles & Permissions</h3>
           </div>
 
-          <button className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-semibold hover:bg-muted">
+          <button
+            onClick={() => setShowCreateRoleModal(true)}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-semibold hover:bg-muted"
+          >
             <Plus className="w-3.5 h-3.5 text-primary" />
             <span>Create Custom Role</span>
           </button>
@@ -150,6 +171,74 @@ export default function RolesAndModulesPage() {
           </div>
         )}
       </div>
+
+      {showCreateRoleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-100">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-primary" />
+                <h3 className="font-bold text-sm text-foreground">Create Custom Role</h3>
+              </div>
+              <button onClick={() => setShowCreateRoleModal(false)} className="rounded-lg p-1 text-muted-foreground hover:bg-muted">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateRole} className="space-y-4 text-xs">
+              <div className="space-y-1">
+                <label className="font-semibold text-foreground">Role Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Senior Nurse"
+                  value={newRoleData.name}
+                  onChange={(e) => setNewRoleData({ ...newRoleData, name: e.target.value })}
+                  className="w-full rounded-lg border border-border bg-muted/30 p-2.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-semibold text-foreground">Description *</label>
+                <textarea
+                  required
+                  placeholder="What can this role do?"
+                  value={newRoleData.description}
+                  onChange={(e) => setNewRoleData({ ...newRoleData, description: e.target.value })}
+                  className="w-full rounded-lg border border-border bg-muted/30 p-2.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[80px]"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateRoleModal(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-medium border border-border hover:bg-muted text-foreground"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createRoleMutation.isPending}
+                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-opacity shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {createRoleMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Create Role</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

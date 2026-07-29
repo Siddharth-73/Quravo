@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiFetch } from '@/lib/api/client';
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_KEY || 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
 
@@ -65,13 +66,14 @@ export function usePushSubscriptions() {
       setIsSubscribed(true);
 
       // 4. Send subscription to your backend
-      await fetch('/api/v1/push/subscribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(sub),
-      });
+      try {
+        await apiFetch('/push/subscribe', {
+          method: 'POST',
+          body: JSON.stringify(sub),
+        });
+      } catch (subscribeError) {
+        console.error('Failed to send push subscription to backend:', subscribeError);
+      }
 
     } catch (error) {
       console.error('Failed to subscribe user:', error);

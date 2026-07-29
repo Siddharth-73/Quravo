@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 
 export interface CheckoutSessionResult {
@@ -17,6 +18,8 @@ export interface IBillingProvider {
 @Injectable()
 export class MockBillingProvider implements IBillingProvider {
   private readonly logger = new Logger(MockBillingProvider.name);
+
+  constructor(private readonly configService: ConfigService) {}
 
   async createCheckoutSession(tenantId: string, planTier: string, returnUrl: string): Promise<CheckoutSessionResult> {
     const sessionId = `mock_sess_${randomUUID()}`;
@@ -39,7 +42,14 @@ export class MockBillingProvider implements IBillingProvider {
     return true;
   }
 
+  // Placeholder shared-secret comparison until a real billing provider (e.g. Stripe/Razorpay)
+  // replaces MockBillingProvider with proper HMAC-based signature verification.
   verifyWebhook(signature: string, payload: any): boolean {
-    return true;
+    const configuredSecret = this.configService.get<string>('SUBSCRIPTION_WEBHOOK_SECRET');
+    if (!configuredSecret) {
+      this.logger.warn('SUBSCRIPTION_WEBHOOK_SECRET is not configured; rejecting all webhook requests.');
+      return false;
+    }
+    return signature === configuredSecret;
   }
 }

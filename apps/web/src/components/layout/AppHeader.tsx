@@ -6,8 +6,30 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { Search, Bell, Sun, Moon, Lock, ChevronDown, Settings, LogOut, User } from 'lucide-react';
 import { usePushSubscriptions } from '@/hooks/use-push-subscriptions';
+import {
+  useNotifications,
+  useUnreadNotificationCount,
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+  type AppNotification,
+} from '@/domains/notifications/hooks';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const diffMs = Date.now() - date.getTime();
+  const diffSec = Math.round(diffMs / 1000);
+  const diffMin = Math.round(diffSec / 60);
+  const diffHour = Math.round(diffMin / 60);
+  const diffDay = Math.round(diffHour / 24);
+
+  if (diffSec < 60) return 'just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHour < 24) return `${diffHour}h ago`;
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return date.toLocaleDateString();
+}
 
 interface AppHeaderProps {
   onOpenCommandPalette?: () => void;
@@ -25,6 +47,13 @@ export function AppHeader({ onOpenCommandPalette, tenantName = 'Quravo Health', 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const { isSubscribed, subscribeUser } = usePushSubscriptions();
+  const { data: unreadCountData } = useUnreadNotificationCount();
+  const { data: notificationsData } = useNotifications({ limit: 10 });
+  const markNotificationRead = useMarkNotificationRead();
+  const markAllNotificationsRead = useMarkAllNotificationsRead();
+
+  const unreadCount = unreadCountData?.count ?? 0;
+  const notifications = notificationsData?.data ?? [];
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -55,13 +84,7 @@ export function AppHeader({ onOpenCommandPalette, tenantName = 'Quravo Health', 
       <div className="flex items-center gap-4">
         {/* Clinic Brand & Branch Switcher */}
         <div className="flex items-center gap-3">
-          {logoUrl ? (
-            <img src={logoUrl} alt={tenantName} className="h-7 w-auto object-contain" />
-          ) : (
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm shadow-sm">
-              {tenantName.charAt(0)}
-            </div>
-          )}
+          <img src={logoUrl || '/icon.png'} alt={tenantName} className="h-8 w-8 object-contain rounded-lg" />
           <span className="font-semibold text-sm tracking-tight text-foreground hidden sm:inline-block">
             {tenantName}
           </span>
@@ -104,42 +127,82 @@ export function AppHeader({ onOpenCommandPalette, tenantName = 'Quravo Health', 
             title="Notifications"
           >
             <Bell className="h-4 w-4" />
-            {!isSubscribed && <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary animate-pulse" />}
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </button>
 
           {isNotificationsOpen && (
             <div className="absolute right-0 mt-2 w-80 rounded-xl border border-border bg-card p-4 shadow-xl z-50 animate-in slide-in-from-top-2 duration-200">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-sm">Notifications</h3>
-                {isSubscribed && (
-                  <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium border border-primary/20">Active</span>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={() => markAllNotificationsRead.mutate()}
+                    disabled={markAllNotificationsRead.isPending}
+                    className="text-[10px] text-primary hover:underline font-medium disabled:opacity-50"
+                  >
+                    Mark all as read
+                  </button>
                 )}
               </div>
-              
-              {!isSubscribed ? (
-                <div className="rounded-lg bg-muted/50 border border-border p-4 text-center">
-                  <div className="mx-auto h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center mb-3">
-                    <Bell className="h-5 w-5 text-primary" />
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-4 px-2">
-                    Stay updated with clinic activities. Enable push notifications to get alerts even when closed.
+
+              {!isSubscribed && (
+                <div className="rounded-lg bg-muted/50 border border-border p-3 text-center mb-3">
+                  <p className="text-xs text-muted-foreground mb-2 px-1">
+                    Enable push notifications to get alerts even when this tab is closed.
                   </p>
-                  <button 
+                  <button
                     onClick={async () => {
                       await subscribeUser();
                     }}
-                    className="w-full rounded-lg bg-primary text-primary-foreground px-3 py-2 text-xs font-semibold hover:bg-primary/90 transition-colors shadow-sm"
+                    className="w-full rounded-lg bg-primary text-primary-foreground px-3 py-1.5 text-xs font-semibold hover:bg-primary/90 transition-colors shadow-sm"
                   >
                     Enable Notifications
                   </button>
                 </div>
-              ) : (
+              )}
+
+              {notifications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-6 text-center">
                   <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3 border border-border shadow-inner">
                     <Bell className="h-5 w-5 text-muted-foreground opacity-50" />
                   </div>
                   <p className="text-sm font-medium text-foreground">All caught up!</p>
                   <p className="text-xs text-muted-foreground mt-1">You have no new notifications.</p>
+                </div>
+              ) : (
+                <div className="max-h-80 overflow-y-auto -mx-1">
+                  {notifications.map((notification: AppNotification) => (
+                    <button
+                      key={notification.id}
+                      onClick={() => markNotificationRead.mutate(notification.id)}
+                      className="w-full flex items-start gap-2.5 px-2 py-2.5 rounded-lg text-left hover:bg-muted transition-colors"
+                    >
+                      <span
+                        className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
+                          notification.isRead ? 'bg-transparent' : 'bg-primary'
+                        }`}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className={`text-xs truncate ${
+                            notification.isRead ? 'font-medium text-foreground' : 'font-semibold text-foreground'
+                          }`}
+                        >
+                          {notification.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                          {notification.message}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          {formatRelativeTime(notification.createdAt)}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               )}
             </div>

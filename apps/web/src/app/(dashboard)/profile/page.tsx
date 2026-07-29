@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
-import { User, Mail, ShieldCheck, Key, Save, Camera, Check } from 'lucide-react';
+import { User, Mail, ShieldCheck, Key, Save, Camera, Check, Loader2, AlertCircle } from 'lucide-react';
+import { apiFetch } from '@/lib/api/client';
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -13,11 +14,33 @@ export default function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [saved, setSaved] = useState(false);
+  const [isPending, setIsPending] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setIsPending(true);
+    setErrorMsg('');
+    try {
+      await apiFetch('/auth/profile', {
+        method: 'PUT',
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email,
+          currentPassword: currentPassword || undefined,
+          newPassword: newPassword || undefined,
+        }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+      setCurrentPassword('');
+      setNewPassword('');
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to update profile');
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return (
@@ -32,12 +55,20 @@ export default function ProfilePage() {
 
         <button
           onClick={handleSave}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-opacity shadow-sm"
+          disabled={isPending}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-opacity shadow-sm disabled:opacity-50"
         >
-          {saved ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
-          <span>{saved ? 'Saved Changes!' : 'Save Profile'}</span>
+          {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : saved ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
+          <span>{isPending ? 'Saving...' : saved ? 'Saved Changes!' : 'Save Profile'}</span>
         </button>
       </div>
+
+      {errorMsg && (
+        <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 p-3 text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Profile Card */}

@@ -5,6 +5,7 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto, ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { TurnstileGuard } from './guards/turnstile.guard';
 import { RateLimiterGuard } from './guards/rate-limiter.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -103,8 +104,8 @@ export class AuthController {
 
   @Put('profile')
   @UseGuards(JwtAuthGuard)
-  async updateProfile(@Req() req: Request, @Body() data: any) {
-    const userId = (req as any).user?.id || 'usr-1';
-    return { message: 'Profile updated successfully', userId, updatedFields: data };
+  async updateProfile(@Req() req: Request, @Body() dto: UpdateProfileDto) {
+    const userId = (req as any).user.userId;
+    return this.authService.updateProfile(userId, dto);
   }
 }

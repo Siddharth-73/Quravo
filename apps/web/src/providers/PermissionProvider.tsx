@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState } from 'react';
 
 export type PermissionCode =
+  | '*'
   | 'patients:read'
   | 'patients:write'
   | 'patients:delete'

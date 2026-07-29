@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Building2, Plus, MapPin, Phone, Clock, Loader2 } from 'lucide-react';
-import { useBranches, useCreateBranch } from '@/domains/clinic/hooks';
+import { Building2, Plus, MapPin, Phone, Clock, Loader2, X, Save } from 'lucide-react';
+import { useBranches, useCreateBranch, useBranchWorkingHours, useUpdateBranchWorkingHours } from '@/domains/clinic/hooks';
 
 export default function BranchManagementPage() {
   const { data: branches = [], isLoading } = useBranches();
@@ -10,6 +10,7 @@ export default function BranchManagementPage() {
 
   const [newBranchName, setNewBranchName] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const [selectedBranchIdForHours, setSelectedBranchIdForHours] = useState<string | null>(null);
 
   const handleAddBranch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,7 +121,10 @@ export default function BranchManagementPage() {
                     {b.status === 'active' ? 'Active' : 'Inactive'}
                   </span>
 
-                  <button className="px-3 py-1.5 rounded-lg border border-border bg-card text-foreground hover:bg-muted font-medium">
+                  <button 
+                    onClick={() => setSelectedBranchIdForHours(b.id)}
+                    className="px-3 py-1.5 rounded-lg border border-border bg-card text-foreground hover:bg-muted font-medium"
+                  >
                     Configure Hours
                   </button>
                 </div>
@@ -133,6 +137,127 @@ export default function BranchManagementPage() {
             )}
           </div>
         )}
+      </div>
+
+      {selectedBranchIdForHours && (
+        <BranchHoursModal
+          branchId={selectedBranchIdForHours}
+          onClose={() => setSelectedBranchIdForHours(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function BranchHoursModal({ branchId, onClose }: { branchId: string; onClose: () => void }) {
+  const { data: hours = [], isLoading } = useBranchWorkingHours(branchId);
+  const updateHoursMutation = useUpdateBranchWorkingHours();
+  const [localHours, setLocalHours] = useState<any[]>([]);
+
+  // Initialize local hours when data loads
+  React.useEffect(() => {
+    if (hours.length > 0) {
+      setLocalHours(hours);
+    } else if (!isLoading) {
+      // Defaults if none exist
+      const defaults = Array.from({ length: 7 }).map((_, i) => ({
+        dayOfWeek: i,
+        openTime: '09:00',
+        closeTime: '17:00',
+        isClosed: i === 0 || i === 6, // Closed on weekends default
+      }));
+      setLocalHours(defaults);
+    }
+  }, [hours, isLoading]);
+
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  const handleSave = async () => {
+    try {
+      await updateHoursMutation.mutateAsync({ branchId, hours: localHours });
+      onClose();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const updateDay = (dayIndex: number, field: string, value: any) => {
+    setLocalHours((prev) =>
+      prev.map((h) => (h.dayOfWeek === dayIndex ? { ...h, [field]: value } : h))
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-100">
+      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4">
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-primary" />
+            <h3 className="font-bold text-sm text-foreground">Configure Hours</h3>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-1 text-muted-foreground hover:bg-muted">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {isLoading ? (
+           <div className="flex justify-center p-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+        ) : (
+          <div className="space-y-3 text-xs">
+            {localHours.map((h) => (
+              <div key={h.dayOfWeek} className="flex items-center justify-between p-2 rounded-lg border border-border bg-muted/20">
+                <div className="w-24 font-semibold text-foreground">
+                  {days[h.dayOfWeek]}
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={h.isClosed}
+                      onChange={(e) => updateDay(h.dayOfWeek, 'isClosed', e.target.checked)}
+                      className="rounded border-border"
+                    />
+                    <span className="text-muted-foreground">Closed</span>
+                  </label>
+                  {!h.isClosed && (
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="time"
+                        value={h.openTime}
+                        onChange={(e) => updateDay(h.dayOfWeek, 'openTime', e.target.value)}
+                        className="rounded border border-border bg-card px-1.5 py-1"
+                      />
+                      <span className="text-muted-foreground">-</span>
+                      <input
+                        type="time"
+                        value={h.closeTime}
+                        onChange={(e) => updateDay(h.dayOfWeek, 'closeTime', e.target.value)}
+                        className="rounded border border-border bg-card px-1.5 py-1"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button
+            onClick={onClose}
+            className="px-3 py-1.5 rounded-lg border border-border text-foreground hover:bg-muted font-medium text-xs"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={updateHoursMutation.isPending || isLoading}
+            className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-semibold flex items-center gap-2 text-xs disabled:opacity-50"
+          >
+            {updateHoursMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+            {updateHoursMutation.isPending ? 'Saving...' : 'Save Hours'}
+          </button>
+        </div>
       </div>
     </div>
   );

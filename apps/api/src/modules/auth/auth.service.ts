@@ -1,5 +1,6 @@
-import { Injectable, BadRequestException, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, BadRequestException, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { DatabaseService } from '../../database/database.service';
 import { QueueService } from '../../queue/queue.service';
 import { tenants, users, tenantMemberships, refreshTokens, verificationTokens, roles, tenantModules, eq, and } from '@quravo/db';
@@ -8,6 +9,7 @@ import { randomUUID, createHash } from 'crypto';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto, ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { TenantService } from '../tenant/tenant.service';
 
 @Injectable()
@@ -15,6 +17,7 @@ export class AuthService {
   constructor(
     private readonly dbService: DatabaseService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
     private readonly queueService: QueueService,
     private readonly tenantService: TenantService
   ) {}
@@ -94,12 +97,13 @@ export class AuthService {
     });
 
     // Dispatch background email job via BullMQ
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
     await this.queueService.addJob('verify-email', {
       type: 'verify-email',
       to: user.email,
       subject: 'Verify your Quravo Clinic account',
       firstName: user.firstName,
-      verificationUrl: `http://localhost:3000/verify-email?token=${rawToken}`,
+      verificationUrl: `${frontendUrl}/verify-email?token=${rawToken}`,
     });
 
     return {
@@ -298,12 +302,13 @@ export class AuthService {
         expiresAt,
       });
 
+      const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
       await this.queueService.addJob('password-reset', {
         type: 'password-reset',
         to: user.email,
         subject: 'Reset your Quravo password',
         firstName: user.firstName,
-        resetUrl: `http://localhost:3000/reset-password?token=${rawToken}`,
+        resetUrl: `${frontendUrl}/reset-password?token=${rawToken}`,
       });
     }
 
@@ -332,6 +337,25 @@ export class AuthService {
     await db.delete(verificationTokens).where(eq(verificationTokens.id, tokenRecord.id));
 
     return { message: 'Password reset successfully. You may now log in with your new password.' };
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const db = this.dbService.db;
+
+    const updates: Record<string, any> = {};
+    if (dto.firstName !== undefined) updates.firstName = dto.firstName;
+    if (dto.lastName !== undefined) updates.lastName = dto.lastName;
+    if (dto.phone !== undefined) updates.phone = dto.phone;
+    updates.updatedAt = new Date();
+
+    const [updatedUser] = await db.update(users).set(updates).where(eq(users.id, userId)).returning();
+
+    if (!updatedUser) {
+      throw new NotFoundException('User not found.');
+    }
+
+    const { passwordHash, ...userWithoutPassword } = updatedUser;
+    return userWithoutPassword;
   }
 
   async getSession(userId: string, tenantId: string, roleName: string) {
