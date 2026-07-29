@@ -3,15 +3,19 @@
 import React from 'react';
 import { Calendar, Pill, FileText, Download, Plus, Clock } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/providers/AuthProvider';
 
 export default function PatientPortalDashboardPage() {
+  const { user } = useAuth();
+  const patientName = user?.firstName ? `${user.firstName} ${user.lastName}` : 'Priya Patel';
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">My Health & Appointments Portal</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Welcome back, Eleanor Vance. View your upcoming visits, active prescriptions, and lab test reports.
+            Welcome back, {patientName}. View your upcoming visits, active prescriptions, and lab test reports.
           </p>
         </div>
 
@@ -29,7 +33,7 @@ export default function PatientPortalDashboardPage() {
         <div className="rounded-xl border border-border bg-card p-5 space-y-1 shadow-xs">
           <span className="text-xs text-muted-foreground">Next Scheduled Visit</span>
           <div className="text-lg font-bold text-foreground">Tomorrow @ 10:30 AM</div>
-          <span className="text-[11px] text-primary">Dr. Sarah Jenkins</span>
+          <span className="text-[11px] text-primary">Dr. Siddharth Sharma</span>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-5 space-y-1 shadow-xs">
@@ -52,11 +56,14 @@ export default function PatientPortalDashboardPage() {
           <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20">
             <div>
               <div className="font-bold text-foreground">Complete Blood Count (CBC) Report</div>
-              <div className="text-muted-foreground text-[11px]">Date: 2026-07-26 • Laboratory Diagnostics</div>
+              <div className="text-muted-foreground text-[11px]">Date: 2026-07-26 • Metropolis Diagnostics India</div>
             </div>
-            <button className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-muted">
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-muted"
+            >
               <Download className="w-3.5 h-3.5 text-primary" />
-              <span>Download PDF</span>
+              <span>Download PDF Report</span>
             </button>
           </div>
         </div>

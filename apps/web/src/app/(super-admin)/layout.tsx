@@ -1,12 +1,46 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { ShieldAlert, Building, BarChart3, Activity, ArrowLeft } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '@/providers/AuthProvider';
+import { ShieldAlert, Building, BarChart3, Activity, ArrowLeft, LogOut, Lock } from 'lucide-react';
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, setUser } = useAuth();
+
+  const isSuperAdmin =
+    user?.email?.toLowerCase() === 'sharmasiddharth7373@gmail.com' ||
+    user?.role === 'super_admin' ||
+    user?.role === 'Platform Super-Admin';
+
+  useEffect(() => {
+    if (!isSuperAdmin) {
+      router.push('/login');
+    }
+  }, [isSuperAdmin, router]);
+
+  if (!isSuperAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white p-4">
+        <div className="rounded-2xl border border-rose-500/30 bg-slate-900/90 p-6 max-w-sm text-center space-y-3">
+          <Lock className="w-8 h-8 text-rose-500 mx-auto" />
+          <h2 className="text-lg font-bold text-white">Access Restricted</h2>
+          <p className="text-xs text-slate-400">
+            Only <span className="text-purple-400 font-semibold">sharmasiddharth7373@gmail.com</span> has Super Admin permissions.
+          </p>
+          <button
+            onClick={() => router.push('/login')}
+            className="px-4 py-2 rounded-xl bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700 w-full"
+          >
+            Return to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-purple-500 selection:text-white">
@@ -23,7 +57,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                 ROOT OPS
               </span>
             </span>
-            <span className="text-[10px] text-slate-400">SaaS Multi-Tenant Management Console</span>
+            <span className="text-[10px] text-slate-400">{user?.email}</span>
           </div>
         </div>
 
@@ -33,8 +67,18 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Return to Clinic App</span>
+            <span>Return to Landing Page</span>
           </Link>
+          <button
+            onClick={() => {
+              setUser(null);
+              router.push('/login');
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/30 text-xs font-semibold"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
+          </button>
         </div>
       </header>
 

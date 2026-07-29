@@ -34,3 +34,5 @@ export * from './patient-notes';
 export * from './patient-consents';
 export * from './patient-family';
 export * from './patient-favorites';
+export * from './clinic-listings';
+

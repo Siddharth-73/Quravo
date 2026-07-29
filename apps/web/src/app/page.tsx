@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Sparkles, ShieldCheck, Zap, ArrowRight, Building2, Stethoscope, Users, Check, Pill, TestTube, CreditCard, LayoutDashboard, ChevronRight, Activity, Calendar } from 'lucide-react';
+import { QuravoLogo } from '@/components/ui/Logo';
 
 export default function LandingPage() {
   return (
@@ -10,7 +11,9 @@ export default function LandingPage() {
       {/* Top Navbar */}
       <header className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b border-border bg-card/80 px-6 md:px-12 backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Quravo Health" className="h-9 w-auto object-contain" />
+          <Link href="/">
+            <QuravoLogo size="md" />
+          </Link>
         </div>
 
         <nav className="hidden md:flex items-center gap-8 text-xs font-semibold text-muted-foreground">
@@ -18,6 +21,7 @@ export default function LandingPage() {
           <Link href="/features" className="hover:text-foreground transition-colors">Platform Features</Link>
           <Link href="/pricing" className="hover:text-foreground transition-colors">Pricing & Plans</Link>
           <Link href="/book" className="hover:text-foreground transition-colors">Patient Booking</Link>
+          <Link href="/list-clinic" className="text-primary font-bold hover:underline transition-all">List Your Clinic</Link>
         </nav>
 
         <div className="flex items-center gap-3 text-xs">
@@ -163,10 +167,10 @@ export default function LandingPage() {
           <div className="rounded-2xl border border-border bg-card p-6 shadow-xs space-y-6 flex flex-col justify-between">
             <div className="space-y-4">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Starter Tier</span>
-              <div className="text-3xl font-extrabold text-foreground">$49 <span className="text-xs text-muted-foreground font-normal">/mo</span></div>
-              <p className="text-xs text-muted-foreground">Ideal for individual practitioners and solo clinics.</p>
+              <div className="text-3xl font-extrabold text-foreground">₹1,499 <span className="text-xs text-muted-foreground font-normal">/mo</span></div>
+              <p className="text-xs text-muted-foreground">Ideal for individual practitioners and solo clinics in India.</p>
               <ul className="space-y-2 text-xs">
-                {['Appointments Calendar', 'Patient EHR Profiles', 'Electronic Prescriptions', 'Basic POS Billing'].map((item) => (
+                {['Appointments Calendar', 'Patient EHR Profiles', 'Electronic Prescriptions', 'GST-Ready POS Invoicing'].map((item) => (
                   <li key={item} className="flex items-center gap-2 text-foreground">
                     <Check className="w-4 h-4 text-emerald-500" /> {item}
                   </li>
@@ -185,10 +189,10 @@ export default function LandingPage() {
             </span>
             <div className="space-y-4">
               <span className="text-xs font-bold uppercase tracking-wider text-primary">Growth Tier</span>
-              <div className="text-3xl font-extrabold text-foreground">$149 <span className="text-xs text-muted-foreground font-normal">/mo</span></div>
-              <p className="text-xs text-muted-foreground">Perfect for growing multi-doctor clinics and chains.</p>
+              <div className="text-3xl font-extrabold text-foreground">₹3,999 <span className="text-xs text-muted-foreground font-normal">/mo</span></div>
+              <p className="text-xs text-muted-foreground">Perfect for growing multi-doctor clinics and diagnostic chains.</p>
               <ul className="space-y-2 text-xs">
-                {['Everything in Starter', 'Multi-Branch Support', 'Stock Inventory Management', 'AI Clinical Assist', 'Advanced Analytics'].map((item) => (
+                {['Everything in Starter', 'Multi-Branch Support', 'Stock Inventory Management', 'Gemini AI Clinical Assist', 'Advanced Analytics'].map((item) => (
                   <li key={item} className="flex items-center gap-2 text-foreground">
                     <Check className="w-4 h-4 text-primary" /> {item}
                   </li>
@@ -204,8 +208,8 @@ export default function LandingPage() {
           <div className="rounded-2xl border border-border bg-card p-6 shadow-xs space-y-6 flex flex-col justify-between">
             <div className="space-y-4">
               <span className="text-xs font-bold uppercase tracking-wider text-purple-500">ERP Enterprise</span>
-              <div className="text-3xl font-extrabold text-foreground">$399 <span className="text-xs text-muted-foreground font-normal">/mo</span></div>
-              <p className="text-xs text-muted-foreground">Full hospital operations with à la carte modules.</p>
+              <div className="text-3xl font-extrabold text-foreground">₹9,999 <span className="text-xs text-muted-foreground font-normal">/mo</span></div>
+              <p className="text-xs text-muted-foreground">Full hospital operations with multi-location branding.</p>
               <ul className="space-y-2 text-xs">
                 {['Everything in Growth', 'Pharmacy Dispensing Queue', 'Laboratory Diagnostics', 'HR & Staff Management', 'Bed Management'].map((item) => (
                   <li key={item} className="flex items-center gap-2 text-foreground">
@@ -224,8 +228,8 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-border bg-card/60 py-8 px-6 md:px-12 text-center text-xs text-muted-foreground space-y-2">
         <div className="flex items-center justify-center gap-2 font-bold text-foreground">
-          <img src="/icon.png" alt="Quravo" className="h-5 w-5 object-contain" />
-          <span>Quravo Healthcare Platform</span>
+          <QuravoLogo size="sm" />
+          <span className="text-muted-foreground font-normal">Healthcare Platform</span>
         </div>
         <div>HIPAA & GDPR Compliant Monolith Architecture • Built with Next.js 15, NestJS & PostgreSQL</div>
       </footer>

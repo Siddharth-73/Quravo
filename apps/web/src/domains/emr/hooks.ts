@@ -45,7 +45,7 @@ export function useEncounters() {
           status: enc.status === 'finalized' ? 'Final' : enc.status === 'draft' ? 'Draft' : 'Signed'
         })) as Encounter[];
       } catch (err) {
-        console.warn('Encounters fetch failed, using mock fallback:', err);
+        console.warn('Encounters fetch failed, returning empty list:', err);
         return [];
       }
     },

@@ -1,20 +1,26 @@
 "use client";
 
 import React from 'react';
-import { Building2, DollarSign, Users, ShieldCheck, ArrowUpRight, ShieldAlert, UserCheck, Settings } from 'lucide-react';
+import { Building2, IndianRupee, Users, ShieldCheck, ArrowUpRight, ShieldAlert, UserCheck, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useTenant } from '@/providers/TenantProvider';
+import { usePatients } from '@/domains/patients/hooks';
+import { useAppointments } from '@/domains/appointments/hooks';
 
 export default function ClinicOwnerDashboardPage() {
   const { tenant } = useTenant();
+  const { data: patientsList = [] } = usePatients();
+  const { data: appointmentsList = [] } = useAppointments();
   
+  const patientCount = patientsList.length > 0 ? patientsList.length : 348;
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Clinic Owner Executive Workspace</h1>
           <p className="text-xs text-muted-foreground mt-1">
-            {tenant?.name || 'Your Clinic'} — Revenue analytics, staff performance, and multi-branch operations
+            {tenant?.name || 'Apex Health India'} — Revenue analytics, staff performance, and multi-branch operations
           </p>
         </div>
 
@@ -45,11 +51,11 @@ export default function ClinicOwnerDashboardPage() {
         <div className="rounded-xl border border-border bg-card p-5 space-y-2 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
             <span>Monthly Revenue</span>
-            <div className="p-1.5 rounded-md bg-emerald-500/10 text-emerald-500">
-              <DollarSign className="w-4 h-4" />
+            <div className="p-1.5 rounded-md bg-emerald-500/10 text-emerald-500 font-bold">
+              ₹
             </div>
           </div>
-          <div className="text-2xl font-bold text-foreground">$42,850.00</div>
+          <div className="text-2xl font-bold text-foreground">₹4,28,500.00</div>
           <div className="text-[11px] text-emerald-500 flex items-center gap-1 font-medium">
             <ArrowUpRight className="w-3 h-3" /> +14.2% vs last month
           </div>
@@ -62,7 +68,7 @@ export default function ClinicOwnerDashboardPage() {
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-foreground">348 Patients</div>
+          <div className="text-2xl font-bold text-foreground">{patientCount} Patients</div>
           <div className="text-[11px] text-muted-foreground">Across all branches</div>
         </div>
 
@@ -85,7 +91,7 @@ export default function ClinicOwnerDashboardPage() {
             </div>
           </div>
           <div className="text-2xl font-bold text-foreground">3 Branches</div>
-          <div className="text-[11px] text-muted-foreground">Main, Westside, North</div>
+          <div className="text-[11px] text-muted-foreground">Mumbai, Bengaluru, Delhi NCR</div>
         </div>
       </div>
       
@@ -131,31 +137,7 @@ export default function ClinicOwnerDashboardPage() {
               <h3 className="font-semibold text-foreground">Multi-Branch Operations</h3>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Configure clinic locations, set operating hours, and route patients to appropriate facilities. Scale your clinic with zero IT overhead.
-            </p>
-          </div>
-          
-          <div className="group rounded-xl border border-border bg-card p-6 shadow-sm hover:border-primary/50 transition-colors">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition-colors">
-                <ShieldAlert className="w-5 h-5" />
-              </div>
-              <h3 className="font-semibold text-foreground">HIPAA Audit Logging</h3>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Monitor all critical actions within your clinic. Track who accessed patient records, modified billing data, or changed system settings in real-time.
-            </p>
-          </div>
-          
-          <div className="group rounded-xl border border-border bg-card p-6 shadow-sm hover:border-primary/50 transition-colors">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-lg bg-rose-500/10 text-rose-500 group-hover:bg-rose-500 group-hover:text-white transition-colors">
-                <Settings className="w-5 h-5" />
-              </div>
-              <h3 className="font-semibold text-foreground">Module & Branding Config</h3>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Toggle specific SaaS modules (like AI Scribe or Telemedicine) on/off based on your subscription. Customize clinic logos and color schemes.
+              Configure clinic locations in Mumbai, Bengaluru, or Delhi, set operating hours, and route patients smoothly.
             </p>
           </div>
         </div>

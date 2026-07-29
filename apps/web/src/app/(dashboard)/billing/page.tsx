@@ -134,8 +134,8 @@ export default function BillingPOSPage() {
 
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <div className="text-sm font-bold text-foreground font-mono">${parseFloat(inv.totalAmount).toFixed(2)}</div>
-                    <div className="text-[10px] text-muted-foreground">Due: ${parseFloat(inv.amountDue).toFixed(2)}</div>
+                    <div className="text-sm font-bold text-foreground font-mono">₹{parseFloat(inv.totalAmount).toFixed(2)}</div>
+                    <div className="text-[10px] text-muted-foreground">Due: ₹{parseFloat(inv.amountDue).toFixed(2)}</div>
                   </div>
 
                   <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-md border capitalize ${statusStyle(inv.status)}`}>

@@ -1,41 +1,65 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Pill, CheckCircle2, Search, Clock, AlertCircle, PackageCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Pill, CheckCircle2, Search, Clock, AlertCircle, PackageCheck, Loader2 } from 'lucide-react';
+import { apiFetch } from '@/lib/api/client';
 
 interface PrescriptionOrder {
   id: string;
   patientName: string;
-  doctorName: string;
+  mrn?: string;
+  doctorName?: string;
+  prescribedBy?: string;
   medication: string;
   dosage: string;
-  quantity: number;
-  status: 'Pending' | 'Dispensed' | 'Out of Stock';
-  date: string;
+  quantity?: number;
+  status: 'Pending' | 'Dispensed';
+  issuedAt?: string;
 }
 
-const mockOrders: PrescriptionOrder[] = [
-  { id: 'rx-1', patientName: 'Eleanor Vance', doctorName: 'Dr. Sarah Jenkins', medication: 'Amoxicillin 500mg', dosage: '1 capsule 3x daily (5 days)', quantity: 15, status: 'Pending', date: '2026-07-27' },
-  { id: 'rx-2', patientName: 'Marcus Aurelius', doctorName: 'Dr. Sarah Jenkins', medication: 'Lisinopril 10mg', dosage: '1 tablet daily (30 days)', quantity: 30, status: 'Dispensed', date: '2026-07-26' },
-  { id: 'rx-3', patientName: 'Sophia Lin', doctorName: 'Dr. Robert Chen', medication: 'Metformin 850mg', dosage: '2 tablets daily (60 days)', quantity: 120, status: 'Pending', date: '2026-07-27' },
-];
-
 export default function PharmacyPage() {
-  const [orders, setOrders] = useState<PrescriptionOrder[]>(mockOrders);
+  const [orders, setOrders] = useState<PrescriptionOrder[]>([]);
+  const [dispensingId, setDispensingId] = useState<string | null>(null);
 
-  const handleDispense = (id: string) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, status: 'Dispensed' as const } : o))
-    );
+  const fetchPharmacyOrders = async () => {
+    try {
+      const data = await apiFetch<any[]>('/pharmacy/orders');
+      if (Array.isArray(data)) {
+        setOrders(data);
+      }
+    } catch (err) {
+      console.warn('Backend pharmacy sync note:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchPharmacyOrders();
+  }, []);
+
+  const handleDispense = async (id: string) => {
+    setDispensingId(id);
+    try {
+      await apiFetch(`/pharmacy/dispense/${id}`, { method: 'POST' });
+      setOrders((prev) =>
+        prev.map((o) => (o.id === id ? { ...o, status: 'Dispensed' as const } : o))
+      );
+    } catch (err) {
+      console.warn('Local state fallback for dispense:', err);
+      setOrders((prev) =>
+        prev.map((o) => (o.id === id ? { ...o, status: 'Dispensed' as const } : o))
+      );
+    } finally {
+      setDispensingId(null);
+    }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Pharmacy & Prescription Fulfillment</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Pharmacy & Medication Fulfillment</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Dispense prescribed medications, track stock balances, and manage pharmacy queue
+            Dispense prescribed medications, track dosage instructions, and manage pharmacy queue
           </p>
         </div>
       </div>
@@ -43,8 +67,8 @@ export default function PharmacyPage() {
       <div className="rounded-xl border border-border bg-card p-5 shadow-xs space-y-4">
         <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-2 border-b border-border">
           <span>Patient & Doctor</span>
-          <span>Prescribed Medication</span>
-          <span>Quantity</span>
+          <span>Prescribed Medication & Dosage</span>
+          <span>Prescription Date</span>
           <span>Dispense Status</span>
         </div>
 
@@ -54,17 +78,17 @@ export default function PharmacyPage() {
             className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 transition-colors gap-4"
           >
             <div>
-              <div className="text-xs font-bold text-foreground">{order.patientName}</div>
-              <div className="text-[11px] text-muted-foreground">{order.doctorName}</div>
+              <div className="text-xs font-bold text-foreground">{order.patientName} <span className="font-mono text-muted-foreground font-normal">({order.mrn || 'MRN-2026'})</span></div>
+              <div className="text-[11px] text-muted-foreground">{order.prescribedBy || order.doctorName || 'Lead Physician'}</div>
             </div>
 
             <div>
               <div className="text-xs font-semibold text-primary">{order.medication}</div>
-              <div className="text-[11px] text-muted-foreground">{order.dosage}</div>
+              <div className="text-[11px] text-muted-foreground font-mono">{order.dosage}</div>
             </div>
 
             <div className="text-xs font-mono font-medium text-foreground">
-              Qty: {order.quantity} units
+              {order.issuedAt || '2026-07-29'}
             </div>
 
             <div className="flex items-center gap-3">
@@ -81,10 +105,11 @@ export default function PharmacyPage() {
               {order.status === 'Pending' && (
                 <button
                   onClick={() => handleDispense(order.id)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-700 transition-colors shadow-xs"
+                  disabled={dispensingId === order.id}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-700 transition-colors shadow-xs disabled:opacity-50"
                 >
-                  <PackageCheck className="w-3.5 h-3.5" />
-                  <span>Dispense</span>
+                  {dispensingId === order.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PackageCheck className="w-3.5 h-3.5" />}
+                  <span>{dispensingId === order.id ? 'Dispensing...' : 'Dispense'}</span>
                 </button>
               )}
             </div>

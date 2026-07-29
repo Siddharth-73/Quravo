@@ -38,8 +38,8 @@ export default function ReceptionistDashboardPage() {
           <div className="text-2xl font-bold text-emerald-500">8 Checked In</div>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 space-y-1 shadow-xs">
-          <span className="text-xs text-muted-foreground">Today's Total Billing</span>
-          <div className="text-2xl font-bold text-foreground">$1,480.00</div>
+          <span className="text-xs text-muted-foreground">Today's Total Billing Collection</span>
+          <div className="text-2xl font-bold text-foreground">₹14,800.00</div>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 space-y-1 shadow-xs">
           <span className="text-xs text-muted-foreground">Upcoming Slots Remaining</span>

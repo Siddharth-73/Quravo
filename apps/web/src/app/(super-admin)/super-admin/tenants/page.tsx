@@ -15,13 +15,6 @@ interface TenantRecord {
   status: 'Active' | 'Suspended';
 }
 
-const mockTenants: TenantRecord[] = [
-  { id: '1', name: 'Apex Health Clinic', subdomain: 'apexhealth', plan: 'ERP', branches: 3, status: 'Active' },
-  { id: '2', name: 'Sunrise Dental & Medical', subdomain: 'sunrisemed', plan: 'Growth', branches: 2, status: 'Active' },
-  { id: '3', name: 'Valley Community Hospital', subdomain: 'valleyhospital', plan: 'ERP', branches: 8, status: 'Active' },
-  { id: '4', name: 'Metro Urgent Care', subdomain: 'metrocure', plan: 'Starter', branches: 1, status: 'Active' },
-];
-
 export default function SuperAdminTenantsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
@@ -37,11 +30,10 @@ export default function SuperAdminTenantsPage() {
     setLoading(true);
     try {
       const data = await apiFetch<TenantRecord[]>('/super-admin/tenants');
-      // If db has data, use it; otherwise fallback to mocks so the UI isn't empty
-      setTenants(data.length > 0 ? data : mockTenants);
+      setTenants(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to fetch tenants:', error);
-      setTenants(mockTenants);
+      setTenants([]);
     } finally {
       setLoading(false);
     }
@@ -54,7 +46,7 @@ export default function SuperAdminTenantsPage() {
         name: newTenant.name,
         subdomain: newTenant.slug,
         plan: newTenant.planTier === 'starter' ? 'Starter' : newTenant.planTier === 'growth' ? 'Growth' : 'ERP',
-        branches: 1, // Defaulting to 1 for new provisioned clinic
+        branches: 1,
         status: newTenant.status === 'active' ? 'Active' : 'Suspended',
       },
       ...prev,
@@ -99,7 +91,14 @@ export default function SuperAdminTenantsPage() {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 space-y-3 bg-slate-900/60 rounded-xl border border-slate-800">
           <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
-          <p className="text-sm text-slate-400">Loading tenants directory...</p>
+          <p className="text-sm text-slate-400">Loading live tenants directory...</p>
+        </div>
+      ) : tenants.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 space-y-2 bg-slate-900/60 rounded-xl border border-slate-800 text-center">
+          <p className="text-sm font-semibold text-slate-300">No tenants registered yet</p>
+          <p className="text-xs text-slate-500 max-w-sm">
+            Click "Provision New Tenant" above to create your first clinic workspace.
+          </p>
         </div>
       ) : (
         <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">

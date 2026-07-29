@@ -70,6 +70,20 @@ Action URL: ${actionUrl}
     if (payload.type === 'staff-invite') {
       return `<h2>You've been invited to join ${payload.clinicName}!</h2><p>You have been assigned the <strong>${payload.role}</strong> role. Click below to accept your invitation:</p><a href="${payload.inviteUrl}">${payload.inviteUrl}</a>`;
     }
+    if (payload.type === 'clinic-listing-request') {
+      return `<h2>New Clinic Listing Request</h2>
+        <p>A new clinic owner has submitted a request to list their practice on Quravo:</p>
+        <ul>
+          <li><strong>Clinic Name:</strong> ${payload.clinicName}</li>
+          <li><strong>Owner Name:</strong> ${payload.ownerName}</li>
+          <li><strong>Email:</strong> ${payload.email}</li>
+          <li><strong>Phone:</strong> ${payload.phone}</li>
+          <li><strong>City:</strong> ${payload.city}</li>
+          <li><strong>Specialty:</strong> ${payload.specialty || 'N/A'}</li>
+          <li><strong>Est. Monthly Patients:</strong> ${payload.estimatedMonthlyPatients || 'N/A'}</li>
+          <li><strong>Notes:</strong> ${payload.additionalNotes || 'None'}</li>
+        </ul>`;
+    }
     return `<h2>Password Reset Request</h2><p>Hi ${(payload as any).firstName || 'there'}, click the link below to reset your password:</p><a href="${(payload as any).resetUrl}">${(payload as any).resetUrl}</a>`;
   }
 }

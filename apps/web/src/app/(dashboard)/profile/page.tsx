@@ -77,7 +77,16 @@ export default function ProfilePage() {
             <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 font-bold text-2xl text-primary mx-auto border-2 border-primary/20 shadow-inner">
               {firstName.charAt(0)}{lastName.charAt(0)}
             </div>
-            <button className="absolute bottom-0 right-0 p-1.5 rounded-full bg-primary text-primary-foreground shadow-md hover:opacity-90">
+            <button
+              onClick={() => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.click();
+              }}
+              className="absolute bottom-0 right-0 p-1.5 rounded-full bg-primary text-primary-foreground shadow-md hover:opacity-90"
+              title="Upload profile picture"
+            >
               <Camera className="w-3.5 h-3.5" />
             </button>
           </div>

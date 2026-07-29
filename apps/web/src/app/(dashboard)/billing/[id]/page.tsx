@@ -100,11 +100,11 @@ export default function InvoiceDetailsPage() {
                   <div>
                     <div className="font-medium">{item.description}</div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      Qty {item.quantity} &times; ${parseFloat(item.unitPrice).toFixed(2)}
+                      Qty {item.quantity} &times; ₹{parseFloat(item.unitPrice).toFixed(2)}
                       {parseFloat(item.taxRate) > 0 && ` (+${item.taxRate}% tax)`}
                     </div>
                   </div>
-                  <div className="font-mono">${parseFloat(item.total).toFixed(2)}</div>
+                  <div className="font-mono">₹{parseFloat(item.total).toFixed(2)}</div>
                 </div>
               ))
             ) : (
@@ -118,21 +118,21 @@ export default function InvoiceDetailsPage() {
           <div className="space-y-3 text-sm text-muted-foreground">
             <div className="flex justify-between">
               <span>Subtotal:</span>
-              <span>${parseFloat(invoice.subtotal).toFixed(2)}</span>
+              <span>₹{parseFloat(invoice.subtotal).toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span>Tax:</span>
-              <span>${parseFloat(invoice.taxAmount).toFixed(2)}</span>
+              <span>₹{parseFloat(invoice.taxAmount).toFixed(2)}</span>
             </div>
             {parseFloat(invoice.discountAmount) > 0 && (
               <div className="flex justify-between">
                 <span>Discount:</span>
-                <span>-${parseFloat(invoice.discountAmount).toFixed(2)}</span>
+                <span>-₹{parseFloat(invoice.discountAmount).toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between font-bold text-foreground pt-3 border-t border-border text-base">
               <span>Amount Due:</span>
-              <span className="font-mono text-primary">${amountDue.toFixed(2)}</span>
+              <span className="font-mono text-primary">₹{amountDue.toFixed(2)}</span>
             </div>
           </div>
 

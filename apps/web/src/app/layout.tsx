@@ -9,15 +9,26 @@ import { PermissionProvider } from '@/providers/PermissionProvider';
 import { BranchProvider } from '@/providers/BranchProvider';
 import { SocketProvider } from '@/providers/SocketProvider';
 
-export const metadata = {
+import { Metadata } from 'next';
+import { ServiceWorkerRegister } from '@/components/pwa/ServiceWorkerRegister';
+
+export const metadata: Metadata = {
   title: 'Quravo — Multi-Tenant White-Label Healthcare SaaS',
   description: 'Modular enterprise healthcare management platform for clinics and hospitals',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Quravo',
+  },
+  themeColor: '#2563eb',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground">
+        <ServiceWorkerRegister />
         <QueryProvider>
           <ThemeProvider>
             <TenantProvider>

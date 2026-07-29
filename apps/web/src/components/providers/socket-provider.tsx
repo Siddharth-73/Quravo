@@ -20,24 +20,20 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // In a real implementation, we'd retrieve the actual tenantId and userId from context/session
-    // For this MVP layout, we inject mock headers to simulate the multi-tenant handshake
     const socketInstance = io(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:4000/realtime', {
       withCredentials: true,
       extraHeaders: {
-        'x-tenant-id': 'tenant-mock', // TODO: Get from useAuth/useTenant
-        'x-user-id': 'user-mock',
-        'x-branch-id': 'branch-mock'
+        'x-tenant-id': 'apexhealth',
       }
     });
 
     socketInstance.on('connect', () => {
-      console.log('[Socket] Connected');
+      console.log('[Socket] Connected to realtime gateway');
       setIsConnected(true);
     });
 
     socketInstance.on('disconnect', () => {
-      console.log('[Socket] Disconnected');
+      console.log('[Socket] Disconnected from realtime gateway');
       setIsConnected(false);
     });
 

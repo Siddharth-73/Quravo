@@ -19,7 +19,10 @@ export default function NurseDashboardPage() {
           </p>
         </div>
 
-        <button className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-700 shadow-sm">
+        <button
+          onClick={() => alert('Opening Vitals Intake Form')}
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-700 shadow-sm"
+        >
           <Activity className="w-3.5 h-3.5" />
           <span>Record New Vitals</span>
         </button>
@@ -56,7 +59,10 @@ export default function NurseDashboardPage() {
                 <span className="px-2.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                   {p.status}
                 </span>
-                <button className="px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium hover:bg-muted">
+                <button
+                  onClick={() => alert(`Updating vitals for ${p.name}`)}
+                  className="px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium hover:bg-muted"
+                >
                   Update Vitals
                 </button>
               </div>

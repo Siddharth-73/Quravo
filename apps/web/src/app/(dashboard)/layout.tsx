@@ -151,8 +151,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </button>
               <button
                 onClick={() => {
-                  alert(`Upgrading tenant to unlock ${upgradeModalItem.title}`);
                   setUpgradeModalItem(null);
+                  router.push('/settings/subscription');
                 }}
                 className="px-4 py-2 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity shadow-sm flex items-center gap-1.5"
               >

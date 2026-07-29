@@ -3,6 +3,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DatabaseService } from '../../database/database.service';
 import { tenants, customDomains, roles, eq } from '@quravo/db';
 import { TenantCreatedEvent } from '@quravo/common';
+import { UpdateTenantDto } from './dto/update-tenant.dto';
 
 @Injectable()
 export class TenantService {
@@ -35,6 +36,26 @@ export class TenantService {
     }
 
     return tenant;
+  }
+
+  async updateTenant(id: string, dto: UpdateTenantDto) {
+    const db = this.dbService.db;
+    const [existing] = await db.select().from(tenants).where(eq(tenants.id, id)).limit(1);
+
+    if (!existing) {
+      throw new NotFoundException('Clinic profile not found.');
+    }
+
+    const [updated] = await db
+      .update(tenants)
+      .set({
+        ...dto,
+        updatedAt: new Date(),
+      })
+      .where(eq(tenants.id, id))
+      .returning();
+
+    return updated;
   }
 
   async emitTenantCreatedEvent(data: {

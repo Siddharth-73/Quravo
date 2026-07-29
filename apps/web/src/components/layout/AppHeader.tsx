@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { BranchSwitcher } from './BranchSwitcher';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/providers/ThemeProvider';
+import { QuravoLogo } from '@/components/ui/Logo';
 import { Search, Bell, Sun, Moon, Lock, ChevronDown, Settings, LogOut, User } from 'lucide-react';
 import { usePushSubscriptions } from '@/hooks/use-push-subscriptions';
 import {
@@ -84,7 +85,11 @@ export function AppHeader({ onOpenCommandPalette, tenantName = 'Quravo Health', 
       <div className="flex items-center gap-4">
         {/* Clinic Brand & Branch Switcher */}
         <div className="flex items-center gap-3">
-          <img src={logoUrl || '/icon.png'} alt={tenantName} className="h-8 w-8 object-contain rounded-lg" />
+          {logoUrl ? (
+            <img src={logoUrl} alt={tenantName} className="h-8 w-8 object-contain rounded-lg" />
+          ) : (
+            <QuravoLogo showText={false} size="sm" />
+          )}
           <span className="font-semibold text-sm tracking-tight text-foreground hidden sm:inline-block">
             {tenantName}
           </span>

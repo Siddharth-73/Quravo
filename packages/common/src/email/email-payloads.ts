@@ -1,4 +1,4 @@
-export type EmailJobType = 'verify-email' | 'password-reset' | 'welcome-clinic' | 'staff-invite';
+export type EmailJobType = 'verify-email' | 'password-reset' | 'welcome-clinic' | 'staff-invite' | 'clinic-listing-request';
 
 export interface BaseEmailJob {
   type: EmailJobType;
@@ -25,4 +25,17 @@ export interface StaffInviteJobPayload extends BaseEmailJob {
   inviteUrl: string;
 }
 
-export type EmailJobPayload = VerifyEmailJobPayload | PasswordResetJobPayload | StaffInviteJobPayload;
+export interface ClinicListingJobPayload extends BaseEmailJob {
+  type: 'clinic-listing-request';
+  clinicName: string;
+  ownerName: string;
+  email: string;
+  phone: string;
+  city: string;
+  specialty?: string;
+  estimatedMonthlyPatients?: string;
+  additionalNotes?: string;
+}
+
+export type EmailJobPayload = VerifyEmailJobPayload | PasswordResetJobPayload | StaffInviteJobPayload | ClinicListingJobPayload;
+

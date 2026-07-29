@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Calendar as CalendarIcon, Clock, Plus, Filter, User, CheckCircle2, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { useAppointments } from '@/domains/appointments/hooks';
 import { NewAppointmentModal } from '@/components/modals/NewAppointmentModal';
@@ -13,6 +14,7 @@ function getLocalDateString(d: Date = new Date()): string {
 }
 
 export default function AppointmentsPage() {
+  const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(() => getLocalDateString());
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [isApptModalOpen, setIsApptModalOpen] = useState(false);
@@ -125,7 +127,10 @@ export default function AppointmentsPage() {
                 >
                   {apt.status}
                 </span>
-                <button className="text-xs font-medium text-primary hover:underline">
+                <button
+                  onClick={() => router.push('/encounters')}
+                  className="text-xs font-medium text-primary hover:underline"
+                >
                   View Note
                 </button>
               </div>
