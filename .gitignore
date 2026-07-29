@@ -1,10 +1,38 @@
+# Dependencies
 node_modules
+.pnpm-store/
+
+# Build
 .next
 dist
 build
 .turbo
+coverage
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
 *.log
+
+# Environment
 .env
 .env.local
+
+# Uploads
+uploads/
+apps/api/uploads/
+
+# Generated JS
+apps/api/src/**/*.js
+apps/api/src/**/*.js.map
+
+# PWA
+apps/web/public/sw.js
+apps/web/public/sw.js.map
+apps/web/public/workbox-*.js
+apps/web/public/workbox-*.js.map
+apps/web/public/worker-*.js
+
+# Drizzle
 drizzle/migrations/*.sql.bak
-coverage
