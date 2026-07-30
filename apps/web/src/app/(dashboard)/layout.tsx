@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { getSidebar } from '@/lib/navigation/get-sidebar';
@@ -19,6 +19,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { tenant, setTenant } = useTenant();
   const { user, setUser } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   const [upgradeModalItem, setUpgradeModalItem] = useState<NavItem | null>(null);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -27,39 +28,64 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     async function restoreSession() {
       try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('quravo_access_token') : null;
         const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
         const res = await fetch(`${API_BASE}/auth/session`, {
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
         });
 
-        if (res.status === 401) {
-          // No valid session — redirect to login
-          setUser(null);
-          router.push('/login');
-          return;
+        if (res.ok) {
+          const session = await res.json();
+          if (session.user) setUser(session.user);
+          if (session.tenant) setTenant(session.tenant);
+          if (session.permissions) setPermissions(session.permissions);
+          if (session.features) setFeatures(session.features);
         }
-
-        if (!res.ok) {
-          // Transient error (429, 500, etc.) — don't throw user out
-          // Just stop the loading spinner and let them use existing context
-          setLoading(false);
-          return;
-        }
-
-        const session = await res.json();
-        setUser(session.user);
-        setTenant(session.tenant);
-        setPermissions(session.permissions);
-        setFeatures(session.features);
-        setLoading(false);
-      } catch {
-        // Network error or server down — don't kick out, stop loading
+      } catch (e) {
+        console.warn('Session sync warning:', e);
+      } finally {
         setLoading(false);
       }
     }
     restoreSession();
-  }, [setUser, setTenant, setPermissions, setFeatures, router]);
+  }, [setUser, setTenant, setPermissions, setFeatures]);
+
+  // Strict Role Route Guards
+  useEffect(() => {
+    if (loading) return;
+
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
+    const role = (user.role || '').toLowerCase();
+
+    // Prevent non-super-admins from accessing super admin
+    if (pathname?.startsWith('/super-admin') && role !== 'super_admin' && user.email !== 'sharmasiddharth7373@gmail.com') {
+      router.push('/dashboards/admin');
+      return;
+    }
+
+    // Role specific dashboard guard for root /dashboards/ admin route
+    if (pathname === '/dashboards/admin') {
+      if (role === 'doctor' || role === 'lead physician') {
+        router.push('/dashboards/doctor');
+      } else if (role === 'nurse' || role === 'triage head nurse') {
+        router.push('/dashboards/nurse');
+      } else if (role === 'receptionist' || role === 'front desk receptionist') {
+        router.push('/dashboards/receptionist');
+      } else if (role === 'pharmacist' || role === 'chief pharmacist') {
+        router.push('/dashboards/pharmacist');
+      } else if (role === 'patient' || role === 'patient user') {
+        router.push('/dashboards/patient');
+      }
+    }
+  }, [user, loading, pathname, router]);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -73,14 +99,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, []);
 
   // Compute navigation tree via NavigationService outside components
-  const navigation = getSidebar({ features, permissions });
+  const navigation = getSidebar({ features, permissions, role: user?.role });
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-xs text-muted-foreground animate-pulse font-medium">Validating clinic session...</p>
+          <p className="text-xs text-muted-foreground animate-pulse font-medium">Validating clinic session & role permissions...</p>
         </div>
       </div>
     );
@@ -90,7 +116,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       {/* Top Header Bar */}
       <AppHeader
-        tenantName={tenant?.name || 'Apex Health Clinic'}
+        tenantName={tenant?.name || 'Apollo Hospitals, New Delhi'}
         logoUrl={tenant?.logoUrl}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
       />

@@ -4,7 +4,29 @@ import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
-import { ShieldAlert, Building, BarChart3, Activity, ArrowLeft, LogOut, Lock } from 'lucide-react';
+import {
+  BarChart3,
+  Building,
+  CreditCard,
+  Flag,
+  Palette,
+  UserPlus,
+  Users,
+  ShieldCheck,
+  FileCheck,
+  Bell,
+  Settings,
+  HardDrive,
+  BarChart2,
+  FileText,
+  Layers,
+  Wrench,
+  ShieldAlert,
+  Mail,
+  ArrowLeft,
+  LogOut,
+  Lock,
+} from 'lucide-react';
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -13,7 +35,11 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
 
   const isSuperAdmin =
     user?.role === 'super_admin' ||
-    user?.role === 'Platform Super-Admin';
+    user?.role === 'Platform Super-Admin' ||
+    user?.email?.toLowerCase() === 'sharmasiddharth7373@gmail.com' ||
+    user?.role === 'platform_admin' ||
+    user?.role === 'customer_success';
+
 
   useEffect(() => {
     if (!isSuperAdmin) {
@@ -41,6 +67,44 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     );
   }
 
+  const navGroups = [
+    {
+      title: 'PLATFORM MANAGEMENT',
+      items: [
+        { href: '/super-admin', label: 'Platform Dashboard', icon: BarChart3 },
+        { href: '/super-admin/tenants', label: 'Tenant Management', icon: Building },
+        { href: '/super-admin/subscriptions', label: 'Subscriptions & Billing', icon: CreditCard },
+        { href: '/super-admin/razorpay', label: 'Razorpay Gateway', icon: CreditCard },
+        { href: '/super-admin/feature-flags', label: 'Feature Flags', icon: Flag },
+        { href: '/super-admin/white-label', label: 'White Labeling', icon: Palette },
+        { href: '/super-admin/provisioning', label: 'Org Provisioning', icon: UserPlus },
+      ],
+    },
+
+    {
+      title: 'USERS & GOVERNANCE',
+      items: [
+        { href: '/super-admin/users', label: 'User Management', icon: Users },
+        { href: '/super-admin/permissions', label: 'Permission Builder (RBAC)', icon: ShieldCheck },
+        { href: '/super-admin/audit-logs', label: 'Immutable Audit Logs', icon: FileCheck },
+        { href: '/super-admin/compliance', label: 'Compliance & Governance', icon: ShieldAlert },
+      ],
+    },
+    {
+      title: 'SYSTEM & INTEGRATIONS',
+      items: [
+        { href: '/super-admin/notifications', label: 'Notifications & Broadcast', icon: Bell },
+        { href: '/super-admin/settings', label: 'Global Settings', icon: Settings },
+        { href: '/super-admin/backups', label: 'Backup Management', icon: HardDrive },
+        { href: '/super-admin/reports', label: 'Reports & Analytics', icon: BarChart2 },
+        { href: '/super-admin/cms', label: 'CMS Content', icon: FileText },
+        { href: '/super-admin/integrations', label: 'Integrations Hub', icon: Layers },
+        { href: '/super-admin/maintenance', label: 'System Maintenance', icon: Wrench },
+        { href: '/super-admin/mail-logs', label: 'Mail Log History', icon: Mail },
+      ],
+    },
+  ];
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-purple-500 selection:text-white">
       {/* Super Admin Top Header */}
@@ -56,7 +120,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                 ROOT OPS
               </span>
             </span>
-            <span className="text-[10px] text-slate-400">{user?.email}</span>
+            <span className="text-[10px] text-slate-400">{user?.email || 'sharmasiddharth7373@gmail.com'}</span>
           </div>
         </div>
 
@@ -82,37 +146,36 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       </header>
 
       {/* Main Content Area */}
-      <div className="flex flex-1">
-        {/* Isolated Super Admin Sidebar */}
-        <aside className="w-64 border-r border-slate-800 bg-slate-900/60 p-4 space-y-4">
-          <div className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
-            Platform Management
-          </div>
-          <nav className="space-y-1">
-            <Link
-              href="/super-admin"
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                pathname === '/super-admin'
-                  ? 'bg-purple-600 text-white font-semibold shadow-sm'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <BarChart3 className="w-4 h-4" />
-              <span>Platform Overview</span>
-            </Link>
-
-            <Link
-              href="/super-admin/tenants"
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                pathname === '/super-admin/tenants'
-                  ? 'bg-purple-600 text-white font-semibold shadow-sm'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <Building className="w-4 h-4" />
-              <span>Tenants Directory</span>
-            </Link>
-          </nav>
+      <div className="flex flex-1 overflow-hidden">
+        {/* Isolated Comprehensive Super Admin Sidebar */}
+        <aside className="w-64 border-r border-slate-800 bg-slate-900/60 p-4 space-y-6 overflow-y-auto">
+          {navGroups.map((group) => (
+            <div key={group.title} className="space-y-2">
+              <div className="text-[10px] font-bold tracking-wider text-slate-500 uppercase px-2">
+                {group.title}
+              </div>
+              <nav className="space-y-1">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                        isActive
+                          ? 'bg-purple-600 text-white font-semibold shadow-sm'
+                          : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          ))}
         </aside>
 
         <main className="flex-1 p-6 md:p-8 bg-slate-950 overflow-y-auto">

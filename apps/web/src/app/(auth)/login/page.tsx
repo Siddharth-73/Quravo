@@ -147,19 +147,24 @@ export default function LoginPage() {
         clientFeatures = { ...fullFeatures, ...modulesData };
       }
 
+      if (typeof window !== 'undefined' && authData.accessToken) {
+        localStorage.setItem('quravo_access_token', authData.accessToken);
+      }
+
       setUser({
         id: authData.user.id,
         email: authData.user.email,
         firstName: authData.user.firstName || 'User',
         lastName: authData.user.lastName || '',
         role: authData.user.role,
+        tenantId: authData.user.tenantId,
       });
 
       setPermissions(clientPermissions);
       setFeatures(clientFeatures);
 
       const targetDashboard = getDashboardForRole(authData.user.role, authData.user.email);
-      router.push(targetDashboard);
+      window.location.href = targetDashboard;
     } catch (apiError: any) {
       setErrorMessage(
         apiError.message || 'Invalid email address or password. Please check your credentials.'
@@ -167,6 +172,7 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+
   };
 
   return (

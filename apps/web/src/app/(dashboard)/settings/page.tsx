@@ -4,8 +4,25 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useTenant } from '@/providers/TenantProvider';
-import { Settings, Palette, Globe, Building2, Save, Check, Loader2, Phone, Mail, MapPin, FileText, IndianRupee, Clock, Layers } from 'lucide-react';
+import { Settings, Palette, Globe, Building2, Save, Check, Loader2, Phone, Mail, MapPin, FileText, IndianRupee, Clock, Layers, Sparkles } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
+
+export interface ThemePalette {
+  id: string;
+  name: string;
+  hsl: string;
+  hex: string;
+  bgClass: string;
+}
+
+const PRESET_THEME_PALETTES: ThemePalette[] = [
+  { id: 'indigo', name: 'Royal Indigo', hsl: '238.7 83.5% 66.7%', hex: '#6366f1', bgClass: 'bg-indigo-600' },
+  { id: 'emerald', name: 'Emerald Green', hsl: '142.1 76.2% 36.3%', hex: '#10b981', bgClass: 'bg-emerald-500' },
+  { id: 'violet', name: 'Cyber Violet', hsl: '262.1 83.3% 57.8%', hex: '#8b5cf6', bgClass: 'bg-purple-600' },
+  { id: 'amber', name: 'Sunset Amber', hsl: '37.7 92.1% 50.2%', hex: '#f59e0b', bgClass: 'bg-amber-500' },
+  { id: 'teal', name: 'Ocean Teal', hsl: '173.4 80.4% 40%', hex: '#14b8a6', bgClass: 'bg-teal-500' },
+  { id: 'crimson', name: 'Deep Crimson', hsl: '346.8 77.2% 49.8%', hex: '#e11d48', bgClass: 'bg-rose-600' },
+];
 
 export default function SettingsPage() {
   const { updateCustomTheme } = useTheme();
@@ -21,7 +38,8 @@ export default function SettingsPage() {
   const [taxId, setTaxId] = useState(tAny.taxId || '27AAAAA0000A1Z5');
   const [currency, setCurrency] = useState(tAny.currency || 'INR');
   const [timezone, setTimezone] = useState(tAny.timezone || 'Asia/Kolkata');
-  const [primaryColor, setPrimaryColor] = useState(tAny.primaryColor || '221.2 83.2% 53.3%');
+  const [primaryColor, setPrimaryColor] = useState(tAny.primaryColor || '238.7 83.5% 66.7%');
+  const [selectedPaletteId, setSelectedPaletteId] = useState('indigo');
   
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,7 +60,11 @@ export default function SettingsPage() {
           if (t.taxId) setTaxId(t.taxId);
           if (t.currency) setCurrency(t.currency);
           if (t.timezone) setTimezone(t.timezone);
-          if (t.primaryColor) setPrimaryColor(t.primaryColor);
+          if (t.primaryColor) {
+            setPrimaryColor(t.primaryColor);
+            const found = PRESET_THEME_PALETTES.find((p) => p.hsl === t.primaryColor);
+            if (found) setSelectedPaletteId(found.id);
+          }
         }
       } catch (err) {
         console.warn('Using default tenant settings:', err);
@@ -52,6 +74,12 @@ export default function SettingsPage() {
     }
     loadTenantProfile();
   }, []);
+
+  const selectPalette = (palette: ThemePalette) => {
+    setSelectedPaletteId(palette.id);
+    setPrimaryColor(palette.hsl);
+    updateCustomTheme({ primary: palette.hsl });
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -195,21 +223,60 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* 2. White Label Branding Section */}
+      {/* 2. Clinic Theme Picker Color Palette Grid */}
       <div className="rounded-xl border border-border bg-card p-6 space-y-4 shadow-xs">
-        <div className="flex items-center gap-2 border-b border-border pb-3">
-          <Palette className="w-4 h-4 text-primary" />
-          <h3 className="font-bold text-sm text-foreground">White-Label Branding Engine</h3>
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <div className="flex items-center gap-2">
+            <Palette className="w-4 h-4 text-primary" />
+            <h3 className="font-bold text-sm text-foreground">Clinic Theme Picker & Color Palette Grid</h3>
+          </div>
+          <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-mono">
+            <Sparkles className="w-3 h-3 text-amber-400" /> Instant 1-Click Live Preview
+          </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+        {/* Predefined Palette Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {PRESET_THEME_PALETTES.map((p) => {
+            const isSelected = selectedPaletteId === p.id || primaryColor === p.hsl;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => selectPalette(p)}
+                className={`p-3.5 rounded-xl border text-left flex items-center justify-between transition-all ${
+                  isSelected
+                    ? 'border-primary bg-primary/10 ring-2 ring-primary/20 shadow-md'
+                    : 'border-border bg-muted/20 hover:bg-muted/40'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className={`h-7 w-7 rounded-full ${p.bgClass} shadow-sm shrink-0 border border-white/20`}
+                    style={{ backgroundColor: p.hex }}
+                  />
+                  <div>
+                    <span className="font-bold text-xs text-foreground block">{p.name}</span>
+                    <span className="font-mono text-[10px] text-muted-foreground">{p.hex}</span>
+                  </div>
+                </div>
+                {isSelected && <Check className="w-4 h-4 text-primary shrink-0" />}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs pt-2">
           <div className="space-y-1">
-            <label className="font-semibold text-foreground">Primary Accent Color (HSL)</label>
+            <label className="font-semibold text-foreground">Custom Primary Color (HSL)</label>
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={primaryColor}
-                onChange={(e) => setPrimaryColor(e.target.value)}
+                onChange={(e) => {
+                  setPrimaryColor(e.target.value);
+                  updateCustomTheme({ primary: e.target.value });
+                }}
                 className="w-full rounded-lg border border-border bg-muted/30 p-2.5 text-xs font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
               <div

@@ -136,24 +136,32 @@ const masterNavGroups: NavGroup[] = [
         title: 'Super-Admin Console',
         href: '/super-admin',
         iconName: 'Shield',
+        requiredPermissions: ['super_admin:access' as any],
       },
+
     ],
   },
 ];
 
 export interface GetSidebarOptions {
-  features: TenantFeaturesMap;
-  permissions: PermissionCode[];
+  features?: TenantFeaturesMap;
+  permissions?: PermissionCode[];
+  role?: string;
 }
 
-export function getSidebar({ features, permissions }: GetSidebarOptions): SidebarNavigation {
+export function getSidebar({ features = {} as TenantFeaturesMap, permissions = [], role }: GetSidebarOptions = {}): SidebarNavigation {
+
+  const safePermissions = (Array.isArray(permissions) ? permissions : ['*']) as PermissionCode[];
+  const safeFeatures = features || ({} as TenantFeaturesMap);
+
+
   const filteredGroups: NavGroup[] = masterNavGroups
     .map((group) => {
       const visibleItems = group.items
         .map((item) => {
           const access = canAccessItem({
-            features,
-            userPermissions: permissions,
+            features: safeFeatures,
+            userPermissions: safePermissions,
             requiredFeature: item.requiredFeature,
             requiredPermissions: item.requiredPermissions,
           });
@@ -183,3 +191,4 @@ export function getSidebar({ features, permissions }: GetSidebarOptions): Sideba
 
   return { groups: filteredGroups };
 }
+

@@ -8,6 +8,7 @@ export interface UserSession {
   firstName: string;
   lastName: string;
   role: string;
+  tenantId?: string;
   avatarUrl?: string;
 }
 
@@ -27,11 +28,39 @@ export function AuthProvider({
   children: React.ReactNode;
   initialUser?: UserSession | null;
 }) {
-  const [user, setUser] = useState<UserSession | null>(initialUser);
+  const [user, setUserState] = useState<UserSession | null>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('quravo_user_session');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.warn('Failed to parse saved session', e);
+        }
+      }
+    }
+    return initialUser;
+  });
+
+  const setUser = (newSession: UserSession | null) => {
+    setUserState(newSession);
+    if (typeof window !== 'undefined') {
+      if (newSession) {
+        localStorage.setItem('quravo_user_session', JSON.stringify(newSession));
+      } else {
+        localStorage.removeItem('quravo_user_session');
+        localStorage.removeItem('quravo_access_token');
+      }
+    }
+  };
 
   const logout = () => {
     setUser(null);
-    window.location.href = '/login';
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('quravo_user_session');
+      localStorage.removeItem('quravo_access_token');
+      window.location.href = '/login';
+    }
   };
 
   return (

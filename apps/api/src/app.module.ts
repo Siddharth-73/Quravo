@@ -43,7 +43,9 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: ['.env', '../../.env', '../.env'],
     }),
+
     EventEmitterModule.forRoot(),
     LoggerModule.forRoot({
       pinoHttp: {

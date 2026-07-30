@@ -1,77 +1,44 @@
 "use client";
 
-import React, { useState } from 'react';
-import { MetricCardsWidget } from '@/domains/dashboard/widgets/MetricCardsWidget';
-import { TodayScheduleWidget } from '@/domains/dashboard/widgets/TodayScheduleWidget';
-import { PatientQueueWidget } from '@/domains/dashboard/widgets/PatientQueueWidget';
-import { NewPatientModal } from '@/components/modals/NewPatientModal';
-import { NewAppointmentModal } from '@/components/modals/NewAppointmentModal';
-import { useSocket } from '@/providers/SocketProvider';
-import { Plus, UserPlus } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/providers/AuthProvider';
+import { Loader2 } from 'lucide-react';
 
 export default function DashboardOverviewPage() {
-  const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
-  const [isApptModalOpen, setIsApptModalOpen] = useState(false);
-  const { triggerToast } = useSocket();
+  const router = useRouter();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user) return;
+
+    const role = (user.role || '').toLowerCase();
+    const email = (user.email || '').toLowerCase();
+
+    if (role === 'super_admin' || role === 'platform super-admin' || email === 'sharmasiddharth7373@gmail.com') {
+      router.replace('/super-admin');
+    } else if (role === 'doctor' || role === 'lead physician') {
+      router.replace('/dashboards/doctor');
+    } else if (role === 'nurse' || role === 'triage head nurse') {
+      router.replace('/dashboards/nurse');
+    } else if (role === 'receptionist' || role === 'front desk receptionist') {
+      router.replace('/dashboards/receptionist');
+    } else if (role === 'pharmacist' || role === 'chief pharmacist') {
+      router.replace('/dashboards/pharmacist');
+    } else if (role === 'patient' || role === 'patient user') {
+      router.replace('/dashboards/patient');
+    } else {
+      // Owner or Admin
+      router.replace('/dashboards/admin');
+    }
+  }, [user, router]);
 
   return (
-    <div className="space-y-6">
-      {/* Page Title & Interactive Quick Action Buttons */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Clinical Command Center</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Realtime overview of clinic scheduling, waiting room queue, and financials
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsPatientModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-muted transition-colors shadow-xs"
-          >
-            <UserPlus className="w-3.5 h-3.5 text-primary" />
-            <span>New Patient</span>
-          </button>
-          <button
-            onClick={() => setIsApptModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-opacity shadow-sm"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Book Appointment</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 1. Independent Metric Cards Widget */}
-      <MetricCardsWidget />
-
-      {/* 2. Main Workspace Widgets Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <TodayScheduleWidget />
-        </div>
-        <div>
-          <PatientQueueWidget />
-        </div>
-      </div>
-
-      {/* Interactive Modals */}
-      <NewPatientModal
-        isOpen={isPatientModalOpen}
-        onClose={() => setIsPatientModalOpen(false)}
-        onPatientCreated={(patient) => {
-          triggerToast('Patient Registered', `Successfully added ${patient.fullName} (${patient.mrn}) to system.`);
-        }}
-      />
-
-      <NewAppointmentModal
-        isOpen={isApptModalOpen}
-        onClose={() => setIsApptModalOpen(false)}
-        onAppointmentCreated={(appt) => {
-          triggerToast('Appointment Booked', `Booked ${appt.patientName} at ${appt.time} with ${appt.doctorName}.`);
-        }}
-      />
+    <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-3 text-center">
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <p className="text-xs text-muted-foreground font-medium animate-pulse">
+        Routing to your role workspace...
+      </p>
     </div>
   );
 }

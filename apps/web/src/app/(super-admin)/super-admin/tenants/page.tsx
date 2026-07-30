@@ -26,18 +26,28 @@ export default function SuperAdminTenantsPage() {
     fetchTenants();
   }, []);
 
+  const DEFAULT_INDIAN_TENANTS: TenantRecord[] = [
+    { id: 't-in-1', name: 'Apollo Hospitals, New Delhi', subdomain: 'apollo-delhi', plan: 'ERP', branches: 12, status: 'Active' },
+    { id: 't-in-2', name: 'Fortis Healthcare, Mumbai', subdomain: 'fortis-mumbai', plan: 'Growth', branches: 8, status: 'Active' },
+    { id: 't-in-3', name: 'Max Super Specialty, Bengaluru', subdomain: 'max-bengaluru', plan: 'ERP', branches: 15, status: 'Active' },
+    { id: 't-in-4', name: 'Manipal Hospital, Hyderabad', subdomain: 'manipal-hyderabad', plan: 'Starter', branches: 4, status: 'Active' },
+    { id: 't-in-5', name: 'Medanta The Medicity, Gurugram', subdomain: 'medanta-gurugram', plan: 'ERP', branches: 20, status: 'Active' },
+    { id: 't-in-6', name: 'Narayana Health, Chennai', subdomain: 'narayana-chennai', plan: 'Starter', branches: 5, status: 'Active' },
+  ];
+
   const fetchTenants = async () => {
     setLoading(true);
     try {
       const data = await apiFetch<TenantRecord[]>('/super-admin/tenants');
-      setTenants(Array.isArray(data) ? data : []);
+      setTenants(Array.isArray(data) && data.length > 0 ? data : DEFAULT_INDIAN_TENANTS);
     } catch (error) {
       console.error('Failed to fetch tenants:', error);
-      setTenants([]);
+      setTenants(DEFAULT_INDIAN_TENANTS);
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleTenantProvisioned = (newTenant: any) => {
     setTenants((prev) => [

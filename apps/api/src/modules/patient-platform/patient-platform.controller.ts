@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body } from '@nestjs/common';
 import { PatientPlatformService } from './services/patient-platform.service';
 import { BookingGatewayService } from './services/booking-gateway.service';
 
@@ -12,6 +12,16 @@ export class PatientPlatformController {
   @Get('favorites')
   async getFavorites() {
     return { success: true, data: [] };
+  }
+
+  @Get('doctors')
+  async getDoctors() {
+    return this.patientPlatformService.getPublicDoctors();
+  }
+
+  @Get('hospitals')
+  async getHospitals() {
+    return this.patientPlatformService.getPublicHospitals();
   }
 
   @Post('booking/availability')
