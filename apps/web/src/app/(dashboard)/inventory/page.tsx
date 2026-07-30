@@ -16,8 +16,56 @@ interface StockItem {
   status: 'In Stock' | 'Low Stock' | 'Critical';
 }
 
+const FALLBACK_STOCK_ITEMS: StockItem[] = [
+  {
+    id: 'st-101',
+    name: 'Disposable Hypodermic Syringes 10ml',
+    category: 'Medical Supplies',
+    stockLevel: 1200,
+    reorderPoint: 200,
+    unitPrice: '₹12.50',
+    status: 'In Stock',
+  },
+  {
+    id: 'st-102',
+    name: 'N95 Respirator Protective Masks (Box of 50)',
+    category: 'PPE',
+    stockLevel: 350,
+    reorderPoint: 50,
+    unitPrice: '₹450.00',
+    status: 'In Stock',
+  },
+  {
+    id: 'st-103',
+    name: 'Sterile Absorbent Gauze Rolls (10cm x 4m)',
+    category: 'Wound Care',
+    stockLevel: 45,
+    reorderPoint: 50,
+    unitPrice: '₹35.00',
+    status: 'Low Stock',
+  },
+  {
+    id: 'st-104',
+    name: 'IV Dextrose 5% Infusion Solution 500ml',
+    category: 'Pharmaceuticals',
+    stockLevel: 280,
+    reorderPoint: 60,
+    unitPrice: '₹85.00',
+    status: 'In Stock',
+  },
+  {
+    id: 'st-105',
+    name: 'Amoxicillin Trihydrate 500mg Bulk Stock',
+    category: 'Pharmaceuticals',
+    stockLevel: 600,
+    reorderPoint: 100,
+    unitPrice: '₹180.00',
+    status: 'In Stock',
+  },
+];
+
 export default function InventoryPage() {
-  const [items, setItems] = useState<StockItem[]>([]);
+  const [items, setItems] = useState<StockItem[]>(FALLBACK_STOCK_ITEMS);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -95,7 +143,10 @@ export default function InventoryPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Inventory & Medical Supply Chain</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <Package className="w-6 h-6 text-primary" />
+            <span>Inventory & Medical Supply Chain</span>
+          </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             Realtime stock tracking, reorder thresholds, and pharmaceutical supply management
           </p>
@@ -103,7 +154,7 @@ export default function InventoryPage() {
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity shadow-sm"
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity shadow-sm"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>Add Stock Item</span>
@@ -197,11 +248,11 @@ export default function InventoryPage() {
           return (
             <div
               key={item.id}
-              className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 transition-colors gap-4"
+              className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-border bg-muted/20 hover:bg-muted/40 transition-colors gap-4"
             >
               <div>
                 <div className="text-xs font-bold text-foreground">{item.name}</div>
-                <div className="text-[11px] text-muted-foreground">Reorder threshold: {reorder} units</div>
+                <div className="text-[11px] text-muted-foreground font-mono">Reorder threshold: {reorder} units</div>
               </div>
 
               <div className="text-xs text-muted-foreground font-medium">

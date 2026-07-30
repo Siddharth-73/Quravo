@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
+import { useTenant } from '@/providers/TenantProvider';
 import { usePermissions, PermissionCode } from '@/providers/PermissionProvider';
 import { useFeatureFlags } from '@/providers/FeatureFlagProvider';
 import { fullFeatures } from '@/lib/auth/credentials';
@@ -23,7 +24,15 @@ interface LoginResponse {
     firstName?: string;
     lastName?: string;
   };
+  tenant?: {
+    id: string;
+    name: string;
+    slug: string;
+    currency?: string;
+    timezone?: string;
+  };
 }
+
 
 const ALL_PERMISSIONS: PermissionCode[] = [
   'patients:read',
@@ -99,8 +108,10 @@ const getDashboardForRole = (role: string, email?: string): string => {
 export default function LoginPage() {
   const router = useRouter();
   const { setUser } = useAuth();
+  const { setTenant } = useTenant();
   const { setPermissions } = usePermissions();
   const { setFeatures } = useFeatureFlags();
+
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -151,6 +162,10 @@ export default function LoginPage() {
         localStorage.setItem('quravo_access_token', authData.accessToken);
       }
 
+      if (authData.tenant) {
+        setTenant(authData.tenant);
+      }
+
       setUser({
         id: authData.user.id,
         email: authData.user.email,
@@ -165,6 +180,7 @@ export default function LoginPage() {
 
       const targetDashboard = getDashboardForRole(authData.user.role, authData.user.email);
       window.location.href = targetDashboard;
+
     } catch (apiError: any) {
       setErrorMessage(
         apiError.message || 'Invalid email address or password. Please check your credentials.'

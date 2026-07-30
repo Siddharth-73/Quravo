@@ -6,15 +6,17 @@ export interface TenantMetadata {
   id: string;
   name: string;
   slug: string;
-  subdomain: string;
+  subdomain?: string;
   customDomain?: string;
   logoUrl?: string;
-  planTier: 'starter' | 'growth' | 'erp';
+  planTier?: string;
+  currency?: string;
+  timezone?: string;
 }
 
 interface TenantContextType {
   tenant: TenantMetadata | null;
-  setTenant: (tenant: TenantMetadata) => void;
+  setTenant: (tenant: TenantMetadata | null) => void;
 }
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
@@ -26,7 +28,30 @@ export function TenantProvider({
   children: React.ReactNode;
   initialTenant?: TenantMetadata | null;
 }) {
-  const [tenant, setTenant] = useState<TenantMetadata | null>(initialTenant);
+  const [tenant, setTenantState] = useState<TenantMetadata | null>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('quravo_tenant_context');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.warn('Failed to parse saved tenant context', e);
+        }
+      }
+    }
+    return initialTenant;
+  });
+
+  const setTenant = (newTenant: TenantMetadata | null) => {
+    setTenantState(newTenant);
+    if (typeof window !== 'undefined') {
+      if (newTenant) {
+        localStorage.setItem('quravo_tenant_context', JSON.stringify(newTenant));
+      } else {
+        localStorage.removeItem('quravo_tenant_context');
+      }
+    }
+  };
 
   return (
     <TenantContext.Provider value={{ tenant, setTenant }}>

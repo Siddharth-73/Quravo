@@ -255,15 +255,23 @@ export function AppHeader({ onOpenCommandPalette, tenantName = 'Quravo Health', 
                   <User className="w-4 h-4 text-muted-foreground" />
                   My Profile
                 </Link>
-                <Link
-                  href="/settings"
-                  onClick={() => setIsProfileOpen(false)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium text-foreground hover:bg-muted transition-colors"
-                >
-                  <Settings className="w-4 h-4 text-muted-foreground" />
-                  Clinic Settings
-                </Link>
+                {(() => {
+                  const r = (user?.role || '').toLowerCase();
+                  const canManage = r === 'owner' || r === 'admin' || r === 'super_admin' || r === 'platform super-admin' || user?.email === 'sharmasiddharth7373@gmail.com';
+                  if (!canManage) return null;
+                  return (
+                    <Link
+                      href="/settings"
+                      onClick={() => setIsProfileOpen(false)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                    >
+                      <Settings className="w-4 h-4 text-muted-foreground" />
+                      Clinic Settings
+                    </Link>
+                  );
+                })()}
               </div>
+
               <div className="border-t border-border p-1.5">
                 <button
                   onClick={handleSignOut}

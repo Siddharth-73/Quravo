@@ -52,7 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
     }
     restoreSession();
-  }, [setUser, setTenant, setPermissions, setFeatures]);
+  }, []);
 
   // Strict Role Route Guards
   useEffect(() => {
@@ -64,6 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
 
     const role = (user.role || '').toLowerCase();
+    const email = (user.email || '').toLowerCase();
 
     // Prevent non-super-admins from accessing super admin
     if (pathname?.startsWith('/super-admin') && role !== 'super_admin' && user.email !== 'sharmasiddharth7373@gmail.com') {
@@ -71,21 +72,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return;
     }
 
+    const canManageClinic = role === 'owner' || role === 'admin' || role === 'super_admin' || role === 'platform super-admin' || user.email === 'sharmasiddharth7373@gmail.com';
+
+    // Helper for non-owner redirection
+    const redirectNonOwner = () => {
+      if (role.includes('doctor') || email.includes('doctor')) router.push('/dashboards/doctor');
+      else if (role.includes('nurse') || email.includes('nurse')) router.push('/dashboards/nurse');
+      else if (role.includes('receptionist') || email.includes('reception')) router.push('/dashboards/receptionist');
+      else if (role.includes('pharmacist') || email.includes('pharmacist')) router.push('/dashboards/pharmacist');
+      else if (role.includes('patient') || email.includes('patient')) router.push('/dashboards/patient');
+      else router.push('/dashboards/receptionist');
+    };
+
+    // Prevent non-owners from accessing settings & staff management pages
+    if ((pathname?.startsWith('/settings') || pathname?.startsWith('/staff')) && !canManageClinic) {
+      redirectNonOwner();
+      return;
+    }
+
     // Role specific dashboard guard for root /dashboards/ admin route
-    if (pathname === '/dashboards/admin') {
-      if (role === 'doctor' || role === 'lead physician') {
-        router.push('/dashboards/doctor');
-      } else if (role === 'nurse' || role === 'triage head nurse') {
-        router.push('/dashboards/nurse');
-      } else if (role === 'receptionist' || role === 'front desk receptionist') {
-        router.push('/dashboards/receptionist');
-      } else if (role === 'pharmacist' || role === 'chief pharmacist') {
-        router.push('/dashboards/pharmacist');
-      } else if (role === 'patient' || role === 'patient user') {
-        router.push('/dashboards/patient');
-      }
+    if ((pathname === '/dashboards/admin' || pathname === '/dashboard') && !canManageClinic) {
+      redirectNonOwner();
     }
   }, [user, loading, pathname, router]);
+
+
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -116,10 +127,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       {/* Top Header Bar */}
       <AppHeader
-        tenantName={tenant?.name || 'Apollo Hospitals, New Delhi'}
+        tenantName={tenant?.name || 'Medical Center Workspace'}
         logoUrl={tenant?.logoUrl}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
       />
+
 
       {/* Main Workspace Layout */}
       <div className="flex flex-1">

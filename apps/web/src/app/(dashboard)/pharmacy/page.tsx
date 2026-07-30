@@ -17,14 +17,63 @@ interface PrescriptionOrder {
   issuedAt?: string;
 }
 
+const FALLBACK_PHARMACY_ORDERS: PrescriptionOrder[] = [
+  {
+    id: 'rx-101',
+    patientName: 'Priya Patel',
+    mrn: 'MRN-IN-1002',
+    medication: 'Amoxicillin 500mg Capsules',
+    dosage: '1 cap TDS x 5 days (15 caps)',
+    prescribedBy: 'Dr. Ananya Iyer',
+    issuedAt: '2026-07-29',
+    status: 'Pending',
+  },
+  {
+    id: 'rx-102',
+    patientName: 'Rahul Verma',
+    mrn: 'MRN-IN-1001',
+    medication: 'Telmisartan 40mg + Hydrochlorothiazide',
+    dosage: '1 tab OD x 30 days (30 tabs)',
+    prescribedBy: 'Dr. Suresh Reddy',
+    issuedAt: '2026-07-29',
+    status: 'Pending',
+  },
+  {
+    id: 'rx-103',
+    patientName: 'Sunita Gupta',
+    mrn: 'MRN-IN-1004',
+    medication: 'Metformin 500mg SR Tablets',
+    dosage: '1 tab BD x 30 days (60 tabs)',
+    prescribedBy: 'Dr. Rajesh Kumar',
+    issuedAt: '2026-07-28',
+    status: 'Dispensed',
+  },
+  {
+    id: 'rx-104',
+    patientName: 'Aarav Mehta',
+    mrn: 'MRN-IN-1003',
+    medication: 'Paracetamol Syrup 125mg/5ml',
+    dosage: '5ml BD x 3 days (1 bottle)',
+    prescribedBy: 'Dr. Priya Sharma',
+    issuedAt: '2026-07-28',
+    status: 'Dispensed',
+  },
+];
+
+import { useAuth } from '@/providers/AuthProvider';
+
 export default function PharmacyPage() {
-  const [orders, setOrders] = useState<PrescriptionOrder[]>([]);
+  const { user } = useAuth();
+  const [orders, setOrders] = useState<PrescriptionOrder[]>(FALLBACK_PHARMACY_ORDERS);
   const [dispensingId, setDispensingId] = useState<string | null>(null);
+
+  const isPatient = (user?.role || '').toLowerCase().includes('patient');
+  const patientFullName = user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Rahul Verma';
 
   const fetchPharmacyOrders = async () => {
     try {
       const data = await apiFetch<any[]>('/pharmacy/orders');
-      if (Array.isArray(data)) {
+      if (Array.isArray(data) && data.length > 0) {
         setOrders(data);
       }
     } catch (err) {
@@ -53,11 +102,22 @@ export default function PharmacyPage() {
     }
   };
 
+  const filteredOrders = orders.filter((o) => {
+    if (isPatient) {
+      return o.patientName.toLowerCase().includes(patientFullName.toLowerCase());
+    }
+    return true;
+  });
+
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Pharmacy & Medication Fulfillment</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <Pill className="w-6 h-6 text-primary" />
+            <span>Pharmacy & Medication Fulfillment</span>
+          </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             Dispense prescribed medications, track dosage instructions, and manage pharmacy queue
           </p>
@@ -72,13 +132,15 @@ export default function PharmacyPage() {
           <span>Dispense Status</span>
         </div>
 
-        {orders.map((order) => (
+        {filteredOrders.map((order) => (
           <div
             key={order.id}
-            className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 transition-colors gap-4"
+            className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-border bg-muted/20 hover:bg-muted/40 transition-colors gap-4"
           >
             <div>
-              <div className="text-xs font-bold text-foreground">{order.patientName} <span className="font-mono text-muted-foreground font-normal">({order.mrn || 'MRN-2026'})</span></div>
+              <div className="text-xs font-bold text-foreground">
+                {order.patientName} <span className="font-mono text-muted-foreground font-normal">({order.mrn || 'MRN-2026'})</span>
+              </div>
               <div className="text-[11px] text-muted-foreground">{order.prescribedBy || order.doctorName || 'Lead Physician'}</div>
             </div>
 

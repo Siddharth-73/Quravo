@@ -29,13 +29,13 @@ export default function SettingsPage() {
   const { tenant } = useTenant();
   const tAny = (tenant || {}) as any;
 
-  const [clinicName, setClinicName] = useState(tAny.name || 'Apex Health India Clinic');
-  const [phone, setPhone] = useState(tAny.phone || '+91 98765 43210');
-  const [email, setEmail] = useState(tAny.email || 'contact@apexhealth.in');
-  const [address, setAddress] = useState(tAny.address || '102 Medical Enclave, MG Road');
-  const [city, setCity] = useState(tAny.city || 'Mumbai');
-  const [state, setState] = useState(tAny.state || 'Maharashtra');
-  const [taxId, setTaxId] = useState(tAny.taxId || '27AAAAA0000A1Z5');
+  const [clinicName, setClinicName] = useState(tAny.name || 'Apollo Hospitals, New Delhi');
+  const [phone, setPhone] = useState(tAny.contactDetails?.phone || '+91 11 2692 5858');
+  const [email, setEmail] = useState(tAny.contactDetails?.email || 'info@apollo-delhi.com');
+  const [address, setAddress] = useState(tAny.contactDetails?.address || 'Sarita Vihar, Delhi Mathura Road');
+  const [city, setCity] = useState(tAny.city || 'New Delhi');
+  const [state, setState] = useState(tAny.state || 'Delhi');
+  const [taxId, setTaxId] = useState(tAny.taxId || '07AAAAA0000A1Z5');
   const [currency, setCurrency] = useState(tAny.currency || 'INR');
   const [timezone, setTimezone] = useState(tAny.timezone || 'Asia/Kolkata');
   const [primaryColor, setPrimaryColor] = useState(tAny.primaryColor || '238.7 83.5% 66.7%');
@@ -46,15 +46,27 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
+    if (tenant) {
+      const t = tenant as any;
+      if (t.name) setClinicName(t.name);
+      if (t.contactDetails?.phone) setPhone(t.contactDetails.phone);
+      if (t.contactDetails?.email) setEmail(t.contactDetails.email);
+      if (t.contactDetails?.address) setAddress(t.contactDetails.address);
+      if (t.currency) setCurrency(t.currency);
+      if (t.timezone) setTimezone(t.timezone);
+    }
+  }, [tenant]);
+
+  useEffect(() => {
     async function loadTenantProfile() {
       try {
         const data = await apiFetch<{ tenant: any }>('/tenants/current');
         if (data?.tenant) {
           const t = data.tenant;
           if (t.name) setClinicName(t.name);
-          if (t.phone) setPhone(t.phone);
-          if (t.email) setEmail(t.email);
-          if (t.address) setAddress(t.address);
+          if (t.phone || t.contactDetails?.phone) setPhone(t.phone || t.contactDetails?.phone);
+          if (t.email || t.contactDetails?.email) setEmail(t.email || t.contactDetails?.email);
+          if (t.address || t.contactDetails?.address) setAddress(t.address || t.contactDetails?.address);
           if (t.city) setCity(t.city);
           if (t.state) setState(t.state);
           if (t.taxId) setTaxId(t.taxId);
@@ -74,6 +86,7 @@ export default function SettingsPage() {
     }
     loadTenantProfile();
   }, []);
+
 
   const selectPalette = (palette: ThemePalette) => {
     setSelectedPaletteId(palette.id);

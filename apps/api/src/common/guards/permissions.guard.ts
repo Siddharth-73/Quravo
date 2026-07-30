@@ -9,6 +9,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
   admin: ['*'],
   super_admin: ['*'],
   doctor: [
+    'users:read',
     'patients:read',
     'patients:write',
     'appointments:read',
@@ -18,16 +19,20 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'prescriptions:read',
     'prescriptions:write',
     'billing:read',
+    'billing:write',
   ],
   nurse: [
+    'users:read',
     'patients:read',
     'patients:write',
     'appointments:read',
     'appointments:write',
     'emr:read',
+    'emr:write',
     'vitals:write',
   ],
   receptionist: [
+    'users:read',
     'patients:read',
     'patients:write',
     'appointments:read',
@@ -36,6 +41,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'billing:write',
   ],
   pharmacist: [
+    'users:read',
     'patients:read',
     'prescriptions:read',
     'prescriptions:write',
@@ -49,8 +55,17 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'billing:read',
   ],
   staff: [
+    'users:read',
     'patients:read',
+    'patients:write',
     'appointments:read',
+    'appointments:write',
+    'emr:read',
+    'emr:write',
+    'prescriptions:read',
+    'prescriptions:write',
+    'billing:read',
+    'billing:write',
   ],
 };
 
@@ -83,6 +98,7 @@ export class PermissionsGuard implements CanActivate {
       roleLower === 'super_admin' ||
       roleLower === 'platform super-admin' ||
       roleLower === 'owner' ||
+      roleLower === 'admin' ||
       user.email === 'sharmasiddharth7373@gmail.com';
 
     if (isSuperAdminUser) {
@@ -92,8 +108,13 @@ export class PermissionsGuard implements CanActivate {
     // Fetch cached permissions from Redis or fallback to role defaults
     let grantedPermissions = await this.tenantCacheService.getRolePermissions(user.tenantId, user.role);
 
+    const defaultRolePerms = DEFAULT_ROLE_PERMISSIONS[roleLower] || DEFAULT_ROLE_PERMISSIONS['staff'];
+
     if (!grantedPermissions || grantedPermissions.length === 0) {
-      grantedPermissions = DEFAULT_ROLE_PERMISSIONS[roleLower] || DEFAULT_ROLE_PERMISSIONS['staff'];
+      grantedPermissions = defaultRolePerms;
+    } else {
+      // Merge cached permissions with default role permissions to ensure base access
+      grantedPermissions = Array.from(new Set([...grantedPermissions, ...defaultRolePerms]));
     }
 
     if (grantedPermissions.includes('*')) {

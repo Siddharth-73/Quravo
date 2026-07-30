@@ -12,6 +12,7 @@ export interface Patient {
   email: string;
   status: 'Active' | 'Inactive';
   createdAt?: string;
+  tenantId?: string;
 }
 
 export interface TimelineEvent {
@@ -38,48 +39,28 @@ export function usePatients(filters: Record<string, unknown> = {}) {
     queryFn: async () => {
       try {
         const res = await apiFetch<any>('/patients');
-        const list = Array.isArray(res) ? res : res.items || [];
-        return list.map((p: any) => ({
-          ...p,
-          fullName: p.fullName || `${p.firstName || ''} ${p.lastName || ''}`.trim(),
-          mrn: p.mrn || p.patientNumber,
-          age: p.age || (p.dateOfBirth ? new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear() : 30),
-          status: p.status === 'active' ? 'Active' : 'Inactive',
-        })) as Patient[];
+        if (res && Array.isArray(res.data)) return res.data as Patient[];
+        if (Array.isArray(res)) return res as Patient[];
+        return [];
       } catch (err) {
-        console.warn('Patients fetch failed, using fallback:', err);
-        return [
-          { id: 'p-101', mrn: 'MRN-2026-001', fullName: 'Eleanor Vance', gender: 'Female', age: 34, phone: '+1 (555) 234-5678', email: 'eleanor.vance@example.com', status: 'Active' },
-          { id: 'p-102', mrn: 'MRN-2026-002', fullName: 'Marcus Aurelius', gender: 'Male', age: 52, phone: '+1 (555) 876-5432', email: 'marcus.aurelius@example.com', status: 'Active' },
-          { id: 'p-103', mrn: 'MRN-2026-003', fullName: 'Sophia Lin', gender: 'Female', age: 28, phone: '+1 (555) 345-6789', email: 'sophia.lin@example.com', status: 'Active' },
-        ] as Patient[];
+        return [];
       }
     },
   });
 }
 
-export function useCreatePatient() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (newPatient: Partial<Patient>) => {
-      return apiFetch<Patient>('/patients', {
-        method: 'POST',
-        body: JSON.stringify(newPatient),
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: patientKeys.all });
-    },
+export function usePatient(id: string) {
+  return useQuery({
+    queryKey: patientKeys.detail(id),
+    queryFn: async () => apiFetch<Patient>(`/patients/${id}`),
+    enabled: !!id,
   });
 }
 
 export function usePatientTimeline(patientId: string) {
   return useQuery({
     queryKey: patientKeys.timeline(patientId),
-    queryFn: async () => {
-      return await apiFetch<TimelineEvent[]>(`/patients/${patientId}/timeline`);
-    },
+    queryFn: async () => apiFetch<TimelineEvent[]>(`/patients/${patientId}/timeline`),
     enabled: !!patientId,
   });
 }
@@ -87,10 +68,23 @@ export function usePatientTimeline(patientId: string) {
 export function usePatientAttachments(patientId: string) {
   return useQuery({
     queryKey: patientKeys.attachments(patientId),
-    queryFn: async () => {
-      return await apiFetch<Attachment[]>(`/patients/${patientId}/attachments`);
-    },
+    queryFn: async () => apiFetch<Attachment[]>(`/patients/${patientId}/attachments`),
     enabled: !!patientId,
+  });
+}
+
+export function useCreatePatient() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Partial<Patient>) => {
+      return await apiFetch<Patient>('/patients', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: patientKeys.lists() });
+    },
   });
 }
 
@@ -110,4 +104,3 @@ export function useUploadAttachment() {
     },
   });
 }
-
