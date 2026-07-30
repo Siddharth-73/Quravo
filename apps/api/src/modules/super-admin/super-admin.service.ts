@@ -511,5 +511,34 @@ export class SuperAdminService {
   async getHealthStatus() {
     return { status: 'healthy', database: 'connected', redis: 'connected', timestamp: new Date() };
   }
+
+  async getUsers() {
+    try {
+      const db = this.dbService.db;
+      const allUsers = await db.select().from(users);
+      const memberships = await db.select().from(tenantMemberships);
+      const allTenants = await db.select().from(tenants);
+
+      const tenantMap = new Map(allTenants.map((t) => [t.id, t.name]));
+      const membershipMap = new Map(memberships.map((m) => [m.userId, m]));
+
+      return allUsers.map((u) => {
+        const m = membershipMap.get(u.id);
+        const tenantName = m ? (tenantMap.get(m.tenantId) || 'Platform Clinic') : 'Platform Root';
+        return {
+          id: u.id,
+          name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email,
+          email: u.email,
+          role: u.email === 'sharmasiddharth7373@gmail.com' ? 'Super Admin' : (m?.role || 'Staff'),
+          tenant: tenantName,
+          status: u.status === 'suspended' ? 'Suspended' : 'Active',
+        };
+      });
+    } catch (err: any) {
+      this.logger.warn(`Could not fetch users list: ${err?.message}`);
+      return [];
+    }
+  }
 }
+
 

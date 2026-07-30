@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
@@ -26,28 +26,45 @@ import {
   ArrowLeft,
   LogOut,
   Lock,
+  Loader2,
 } from 'lucide-react';
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, setUser } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const isSuperAdmin =
+    !user ||
     user?.role === 'super_admin' ||
     user?.role === 'Platform Super-Admin' ||
     user?.email?.toLowerCase() === 'sharmasiddharth7373@gmail.com' ||
     user?.role === 'platform_admin' ||
     user?.role === 'customer_success';
 
-
   useEffect(() => {
-    if (!isSuperAdmin) {
+    if (mounted && user && !isSuperAdmin) {
       router.push('/login');
     }
-  }, [isSuperAdmin, router]);
+  }, [mounted, user, isSuperAdmin, router]);
 
-  if (!isSuperAdmin) {
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white p-4">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+          <p className="text-xs text-slate-400 font-medium">Loading Super-Admin Console...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isSuperAdmin && user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white p-4">
         <div className="rounded-2xl border border-rose-500/30 bg-slate-900/90 p-6 max-w-sm text-center space-y-3">
@@ -80,7 +97,6 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         { href: '/super-admin/provisioning', label: 'Org Provisioning', icon: UserPlus },
       ],
     },
-
     {
       title: 'USERS & GOVERNANCE',
       items: [

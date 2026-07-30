@@ -110,4 +110,11 @@ export class SuperAdminController {
   async getHealthStatus() {
     return this.superAdminService.getHealthStatus();
   }
+
+  @Get('users')
+  @UseGuards(JwtAuthGuard, SuperAdminGuard)
+  async getUsers() {
+    return this.superAdminService.getUsers();
+  }
 }
+
