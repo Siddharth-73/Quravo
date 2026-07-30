@@ -12,7 +12,6 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   const { user, setUser } = useAuth();
 
   const isSuperAdmin =
-    user?.email?.toLowerCase() === 'sharmasiddharth7373@gmail.com' ||
     user?.role === 'super_admin' ||
     user?.role === 'Platform Super-Admin';
 
@@ -29,7 +28,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
           <Lock className="w-8 h-8 text-rose-500 mx-auto" />
           <h2 className="text-lg font-bold text-white">Access Restricted</h2>
           <p className="text-xs text-slate-400">
-            Only <span className="text-purple-400 font-semibold">sharmasiddharth7373@gmail.com</span> has Super Admin permissions.
+            Super-Admin platform authorization is required to access root operations.
           </p>
           <button
             onClick={() => router.push('/login')}

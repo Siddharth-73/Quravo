@@ -1,6 +1,5 @@
 import { Controller, Post, Get, Put, Body, Param, UseGuards } from '@nestjs/common';
 import { SuperAdminService } from './super-admin.service';
-import { SeedService } from '../../database/seed.service';
 import { ProvisionTenantDto } from './dto/provision-tenant.dto';
 import { UpdateTenantConfigDto } from './dto/update-tenant-config.dto';
 import { CreateClinicListingDto } from './dto/create-clinic-listing.dto';
@@ -9,15 +8,7 @@ import { SuperAdminGuard } from './guards/super-admin.guard';
 
 @Controller('super-admin')
 export class SuperAdminController {
-  constructor(
-    private readonly superAdminService: SuperAdminService,
-    private readonly seedService: SeedService
-  ) {}
-
-  @Post('seed')
-  async triggerSeed() {
-    return this.seedService.seedDatabase();
-  }
+  constructor(private readonly superAdminService: SuperAdminService) {}
 
   @Post('list-clinic-request')
   async createClinicListing(@Body() dto: CreateClinicListingDto) {

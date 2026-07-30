@@ -69,7 +69,7 @@ function expandPermissions(rawPermissions: string[]): PermissionCode[] {
 }
 
 const getDashboardForRole = (role: string, email?: string): string => {
-  if (email?.toLowerCase() === 'sharmasiddharth7373@gmail.com' || role === 'super_admin' || role === 'Platform Super-Admin') {
+  if (role === 'super_admin' || role === 'Platform Super-Admin') {
     return '/super-admin';
   }
   switch (role) {
@@ -124,7 +124,7 @@ export default function LoginPage() {
       let clientPermissions: PermissionCode[] = [];
       let clientFeatures = fullFeatures;
 
-      if (authData.user.email.toLowerCase() === 'sharmasiddharth7373@gmail.com' || authData.user.role === 'super_admin') {
+      if (authData.user.role === 'super_admin' || authData.user.role === 'Platform Super-Admin') {
         clientPermissions = ['admin:access', 'settings:write'];
       } else {
         const rolesData = await apiFetch<{ name: string; permissions: string[] }[]>('/rbac/roles', {

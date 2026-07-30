@@ -10,15 +10,6 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { TenantCreatedEvent } from '@quravo/common';
 
-const KNOWN_ROLE_SEEDS: Record<string, { firstName: string; lastName: string; role: any }> = {
-  'doctor@clinic.com': { firstName: 'Siddharth', lastName: 'Sharma', role: 'doctor' },
-  'nurse@clinic.com': { firstName: 'Emily', lastName: 'Blunt', role: 'nurse' },
-  'receptionist@clinic.com': { firstName: 'Jessica', lastName: 'Taylor', role: 'receptionist' },
-  'pharmacist@clinic.com': { firstName: 'Michael', lastName: 'Scott', role: 'staff' },
-  'patient@clinic.com': { firstName: 'Priya', lastName: 'Patel', role: 'patient' },
-  'owner@clinic.com': { firstName: 'Alexander', lastName: 'Vance', role: 'owner' },
-};
-
 @Injectable()
 export class AuthService {
   constructor(
@@ -32,12 +23,19 @@ export class AuthService {
     return createHash('sha256').update(token).digest('hex');
   }
 
+  private getSuperAdminEmail(): string {
+    return (
+      this.configService.get<string>('SUPER_ADMIN_EMAIL') || 'sharmasiddharth7373@gmail.com'
+    ).toLowerCase();
+  }
+
   async login(dto: LoginDto) {
     const db = this.dbService.db;
     const lowerEmail = dto.email.toLowerCase();
+    const superAdminEmail = this.getSuperAdminEmail();
 
-    // 1. Special bypass for Platform Super-Admin (Only sharmasiddharth7373@gmail.com)
-    if (lowerEmail === 'sharmasiddharth7373@gmail.com') {
+    // 1. Special bypass for Platform Super-Admin (Configured via SUPER_ADMIN_EMAIL in .env)
+    if (lowerEmail === superAdminEmail) {
       let [superUser] = await db.select().from(users).where(eq(users.email, lowerEmail)).limit(1);
       if (!superUser) {
         const passwordHash = await argon2.hash(dto.password || 'superadmin123');
@@ -46,8 +44,8 @@ export class AuthService {
           .values({
             email: lowerEmail,
             passwordHash,
-            firstName: 'Siddharth',
-            lastName: 'Sharma',
+            firstName: 'Super',
+            lastName: 'Admin',
             isEmailVerified: true,
             status: 'active',
           })
@@ -74,54 +72,6 @@ export class AuthService {
 
     // 2. Query user from DB
     let [user] = await db.select().from(users).where(eq(users.email, lowerEmail)).limit(1);
-
-    // 3. Dynamic DB Seeding for 1 user per role if not present yet
-    if (!user && KNOWN_ROLE_SEEDS[lowerEmail]) {
-      const seedInfo = KNOWN_ROLE_SEEDS[lowerEmail];
-      const passwordHash = await argon2.hash(dto.password);
-      
-      const [seededUser] = await db
-        .insert(users)
-        .values({
-          email: lowerEmail,
-          passwordHash,
-          firstName: seedInfo.firstName,
-          lastName: seedInfo.lastName,
-          isEmailVerified: true,
-          status: 'active',
-        })
-        .returning();
-      user = seededUser;
-
-      let [defaultTenant] = await db.select().from(tenants).limit(1);
-      if (!defaultTenant) {
-        [defaultTenant] = await db
-          .insert(tenants)
-          .values({
-            name: 'Apex Health India Clinic',
-            slug: 'apexhealth',
-            status: 'active',
-          })
-          .returning();
-      }
-
-      await db.insert(tenantMemberships).values({
-        tenantId: defaultTenant.id,
-        userId: user.id,
-        role: seedInfo.role,
-        status: 'active',
-      });
-
-      return this.generateAuthSession(
-        user.id,
-        user.email,
-        defaultTenant.id,
-        seedInfo.role,
-        undefined,
-        user.firstName,
-        user.lastName
-      );
-    }
 
     if (!user) {
       throw new UnauthorizedException('Invalid email or password credentials.');
@@ -250,6 +200,7 @@ export class AuthService {
   async refreshToken(refreshTokenStr: string) {
     const db = this.dbService.db;
     const tokenHash = this.hashToken(refreshTokenStr);
+    const superAdminEmail = this.getSuperAdminEmail();
 
     const [tokenRecord] = await db
       .select()
@@ -268,7 +219,7 @@ export class AuthService {
       throw new UnauthorizedException('User no longer active.');
     }
 
-    if (user.email === 'sharmasiddharth7373@gmail.com') {
+    if (user.email.toLowerCase() === superAdminEmail) {
       return this.generateAuthSession(
         user.id,
         user.email,

@@ -15,7 +15,7 @@ import { TenantModule } from '../tenant/tenant.module';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET', 'super_secret_jwt_key_change_in_prod'),
+        secret: config.get<string>('JWT_SECRET'),
         signOptions: { expiresIn: '15m' },
       }),
       inject: [ConfigService],

@@ -1,4 +1,5 @@
 import { Injectable, ConflictException, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { DatabaseService } from '../../database/database.service';
 import { tenants, users, tenantMemberships, tenantConfigs, tenantModules, clinicBranches, clinicListings, notifications, eq, desc } from '@quravo/db';
 import * as argon2 from '@node-rs/argon2';
@@ -8,8 +9,6 @@ import { ProvisionTenantDto } from './dto/provision-tenant.dto';
 import { UpdateTenantConfigDto } from './dto/update-tenant-config.dto';
 import { CreateClinicListingDto } from './dto/create-clinic-listing.dto';
 
-const SUPER_ADMIN_EMAIL = 'sharmasiddharth7373@gmail.com';
-
 @Injectable()
 export class SuperAdminService {
   private readonly logger = new Logger(SuperAdminService.name);
@@ -17,11 +16,19 @@ export class SuperAdminService {
   constructor(
     private readonly dbService: DatabaseService,
     private readonly tenantService: TenantService,
-    private readonly queueService: QueueService
+    private readonly queueService: QueueService,
+    private readonly configService: ConfigService
   ) {}
+
+  private getSuperAdminEmail(): string {
+    return (
+      this.configService.get<string>('SUPER_ADMIN_EMAIL') || 'sharmasiddharth7373@gmail.com'
+    ).toLowerCase();
+  }
 
   async createClinicListing(dto: CreateClinicListingDto) {
     const db = this.dbService.db;
+    const superAdminEmail = this.getSuperAdminEmail();
 
     // 1. Insert listing record
     const [listing] = await db
@@ -41,13 +48,11 @@ export class SuperAdminService {
 
     // 2. Create in-app Notification for Super Admin
     try {
-      // Find Super Admin user or default admin user
-      let [superAdminUser] = await db.select().from(users).where(eq(users.email, SUPER_ADMIN_EMAIL)).limit(1);
+      let [superAdminUser] = await db.select().from(users).where(eq(users.email, superAdminEmail)).limit(1);
       if (!superAdminUser) {
         [superAdminUser] = await db.select().from(users).where(eq(users.email, 'admin@quravo.com')).limit(1);
       }
 
-      // Find system/first tenant for global notification binding if needed
       const [firstTenant] = await db.select().from(tenants).limit(1);
       const tenantId = firstTenant?.id || '00000000-0000-0000-0000-000000000000';
 
@@ -65,11 +70,11 @@ export class SuperAdminService {
       this.logger.warn(`Could not create super admin in-app notification: ${err.message}`);
     }
 
-    // 3. Dispatch Email Notification to Super Admin (sharmasiddharth7373@gmail.com)
+    // 3. Dispatch Email Notification to Super Admin
     try {
       await this.queueService.addJob('clinic-listing-request', {
         type: 'clinic-listing-request',
-        to: SUPER_ADMIN_EMAIL,
+        to: superAdminEmail,
         subject: `[Super Admin Alert] New Clinic Listing Request: ${dto.clinicName}`,
         clinicName: dto.clinicName,
         ownerName: dto.ownerName,
@@ -81,7 +86,7 @@ export class SuperAdminService {
         additionalNotes: dto.additionalNotes,
       });
     } catch (err: any) {
-      this.logger.error(`Failed to queue clinic listing email to ${SUPER_ADMIN_EMAIL}: ${err.message}`);
+      this.logger.error(`Failed to queue clinic listing email to ${superAdminEmail}: ${err.message}`);
     }
 
     return {
@@ -98,17 +103,14 @@ export class SuperAdminService {
   async provisionTenant(dto: ProvisionTenantDto) {
     const db = this.dbService.db;
 
-    // Check if tenant slug exists
     const [existingTenant] = await db.select().from(tenants).where(eq(tenants.slug, dto.clinicSlug.toLowerCase())).limit(1);
     if (existingTenant) {
       throw new ConflictException('Clinic subdomain/slug is already taken.');
     }
 
-    // Check if user already exists
     let [user] = await db.select().from(users).where(eq(users.email, dto.email.toLowerCase())).limit(1);
 
     if (!user) {
-      // TODO: force password reset on first login instead of a shared default password
       const passwordHash = await argon2.hash('Quravo@123!');
       
       const [newUser] = await db
@@ -125,7 +127,6 @@ export class SuperAdminService {
       user = newUser;
     }
 
-    // Create Tenant
     const [tenant] = await db
       .insert(tenants)
       .values({
@@ -136,7 +137,6 @@ export class SuperAdminService {
       })
       .returning();
 
-    // Link user to tenant
     await db.insert(tenantMemberships).values({
       tenantId: tenant.id,
       userId: user.id,
@@ -144,7 +144,6 @@ export class SuperAdminService {
       status: 'active',
     });
 
-    // Emit event
     await this.tenantService.emitTenantCreatedEvent({
       tenantId: tenant.id,
       name: tenant.name,
@@ -197,13 +196,11 @@ export class SuperAdminService {
       throw new NotFoundException('Tenant not found.');
     }
 
-    // Get or create config
     let [config] = await db.select().from(tenantConfigs).where(eq(tenantConfigs.tenantId, tenantId)).limit(1);
     if (!config) {
       [config] = await db.insert(tenantConfigs).values({ tenantId }).returning();
     }
 
-    // Get enabled modules
     const modules = await db.select().from(tenantModules).where(eq(tenantModules.tenantId, tenantId));
 
     return { tenant, config, modules };
@@ -222,7 +219,6 @@ export class SuperAdminService {
       throw new NotFoundException('Tenant not found.');
     }
 
-    // Update tenant-level fields
     const tenantUpdates: Record<string, any> = {};
     if (dto.planTier) tenantUpdates.planTier = dto.planTier;
     if (dto.status) tenantUpdates.status = dto.status;
@@ -233,7 +229,6 @@ export class SuperAdminService {
       await db.update(tenants).set(tenantUpdates).where(eq(tenants.id, tenantId));
     }
 
-    // Update config-level fields
     const configUpdates: Record<string, any> = {};
     if (dto.primaryColor) configUpdates.primaryColor = dto.primaryColor;
     if (dto.accentColor) configUpdates.accentColor = dto.accentColor;
@@ -242,7 +237,6 @@ export class SuperAdminService {
     if (dto.settings) configUpdates.settings = dto.settings;
     configUpdates.updatedAt = new Date();
 
-    // Upsert config
     const [existingConfig] = await db.select().from(tenantConfigs).where(eq(tenantConfigs.tenantId, tenantId)).limit(1);
     if (existingConfig) {
       await db.update(tenantConfigs).set(configUpdates).where(eq(tenantConfigs.tenantId, tenantId));
@@ -250,7 +244,6 @@ export class SuperAdminService {
       await db.insert(tenantConfigs).values({ tenantId, ...configUpdates });
     }
 
-    // Fetch updated state
     return this.getTenantConfig(tenantId);
   }
 }

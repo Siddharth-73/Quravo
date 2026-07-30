@@ -20,20 +20,23 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
+    // In a real implementation, we'd retrieve the actual tenantId and userId from context/session
     const socketInstance = io(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:4000/realtime', {
       withCredentials: true,
       extraHeaders: {
-        'x-tenant-id': 'apexhealth',
+        'x-tenant-id': 'tenant-active',
+        'x-user-id': 'user-active',
+        'x-branch-id': 'branch-active'
       }
     });
 
     socketInstance.on('connect', () => {
-      console.log('[Socket] Connected to realtime gateway');
+      console.log('[Socket] Connected');
       setIsConnected(true);
     });
 
     socketInstance.on('disconnect', () => {
-      console.log('[Socket] Disconnected from realtime gateway');
+      console.log('[Socket] Disconnected');
       setIsConnected(false);
     });
 
