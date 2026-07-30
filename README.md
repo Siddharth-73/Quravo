@@ -11,19 +11,23 @@ Quravo is built as a TypeScript monorepo managed with **Turborepo** and **pnpm**
 ```
 Quravo (Monorepo Root)
 ├── apps
-│   ├── api (NestJS Backend)
-│   └── web (Next.js Frontend)
-└── packages
-    ├── common (Shared Logic, RBAC Evaluation, Core Events)
-    ├── config (TypeScript, ESLint, and Build Configs)
-    ├── contracts (AI Prompts & Integration Schemas)
-    └── db (Drizzle ORM Schemas, Migrations, Seeds & Client)
+│   ├── api (NestJS Main Backend Service)
+│   ├── web (Next.js Frontend Portal)
+│   └── worker (NestJS BullMQ Worker Engine)
+├── packages
+│   ├── common (Shared Logic, RBAC Evaluation, Core Events)
+│   ├── config (TypeScript, ESLint, and Build Configs)
+│   ├── contracts (AI Prompts & Integration Schemas)
+│   └── db (Drizzle ORM Schemas, Migrations, Seeds & Client)
+└── scripts
+    ├── seed-run.ts (Comprehensive Seeding Engine)
+    └── seed-india.js (Regional Sample Dataset Seed)
 ```
 
 ### Folder-wise Responsibilities
 
-#### 📂 `apps/api` (NestJS Backend Service)
-Responsible for database transactions, real-time messaging, asynchronous background queues, and access security validation:
+#### 📂 `apps/api` (NestJS Main Backend Service)
+Responsible for database transactions, real-time messaging, HTTP REST endpoints, and access security validation:
 *   `src/modules/auth`: Manages JWT session issuing, multi-factor token validation, and password resets.
 *   `src/modules/rbac`: Sets up clinic-specific RBAC roles and maps dynamic permission arrays.
 *   `src/modules/patient`: Manages Electronic Health Records (EHR), care history timelines, and attachment uploads.
@@ -32,18 +36,27 @@ Responsible for database transactions, real-time messaging, asynchronous backgro
 *   `src/modules/billing`: Drives POS checkouts, invoices, payments, refunds, and pricing.
 *   `src/modules/realtime`: Powers low-latency WebSocket communication (via Socket.IO) to push updates (e.g. queue state, check-ins) to frontend client dashboards in real-time.
 *   `src/modules/analytics`: Compiles aggregated revenue statistics, patient growth charts, and queue timings.
-*   `src/queue/`: Utilizes BullMQ/Redis worker engines to handle background tasks like onboarding notifications, trial triggers, and scheduled reports.
+*   `src/queue/`: Interfaces with BullMQ queues to dispatch async jobs to the worker microservice.
 *   `src/common/middleware`: Hosts request-tracing and tenant-parsing handlers.
 *   `src/common/guards`: Enforces rate-limiting (`ThrottlerGuard`), feature-flag gates (`FeatureFlagGuard`), module-access restrictions (`ModuleGuard`), and user-permissions (`PermissionsGuard`).
 
 #### 📂 `apps/web` (Next.js Frontend Portal)
-Modern, high-performance web interface built with React 19, TailwindCSS, and TanStack React Query:
+Modern, high-performance web interface built with Next.js 15, React 18, TailwindCSS, and TanStack React Query:
 *   `src/app/(auth)`: Fully integrated, secure workspaces for user registration, multi-tenant logins, and password resets.
 *   `src/app/(dashboard)`: Dashboard views. Includes the **Clinical Command Center**, Appointment Calendar, Patient Records, Billing POS, Pharmacy tracking, and Clinic Settings panels.
 *   `src/app/(dashboard)/dashboards`: Role-specific view components catering to different personas (Doctors, Nurses, Receptionists, and Pharmacists).
 *   `src/app/(public)`: Dynamic white-labeled booking portal where patients can view practitioner availability and book visits online.
 *   `src/app/(super-admin)`: Platform Super-Admin console to monitor subscriptions, manage tenants, configure plan features, and audit global platform health.
 *   `src/providers`: Application context providers for feature flags, active tenant states, socket triggers, and auth permissions.
+
+#### 📂 `apps/worker` (NestJS Background Microservice Worker)
+Dedicated background execution engine powered by BullMQ and Redis for heavy async processing:
+*   `src/processors/ai.processor.ts`: Asynchronous LLM/Gemini encounter summary and SOAP note processing.
+*   `src/processors/analytics.processor.ts`: Background metric aggregation and cache warmups.
+*   `src/processors/email.processor.ts`: Transactional email delivery via Resend API.
+*   `src/processors/export.processor.ts`: High-volume CSV exports and PDF invoice/record generation.
+*   `src/processors/notification.processor.ts`: Web push and alert broadcasts.
+*   `src/processors/reminder.processor.ts`: Scheduled SMS/Email appointment reminders.
 
 #### 📂 `packages/db` (Database Infrastructure Layer)
 The central data mapping layer using **Drizzle ORM**:
@@ -58,6 +71,10 @@ The central data mapping layer using **Drizzle ORM**:
 
 #### 📂 `packages/contracts` (AI Prompts & Structured Schemas)
 *   `src/prompts/`: Standardized prompts for LLMs (e.g., Gemini) to generate structured SOAP notes, clinical encounter summaries, and patient history overviews.
+
+#### 📂 `scripts` (Seeding & Utility Scripts)
+*   `scripts/seed-run.ts`: TypeScript seeding script to populate multi-tenant clinic data, credentials, and appointments.
+*   `scripts/seed-india.js`: Regional demo data generator.
 
 ---
 
@@ -185,13 +202,13 @@ Follow these commands to configure the database, start Redis, and launch the dev
 ### Prerequisite Environment Config
 Create a `.env` file in the root folder using `.env.example` as a guide:
 ```env
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/quravo
+DATABASE_URL=postgresql://quravo:quravo_secret@localhost:5433/quravo_db
 REDIS_URL=redis://localhost:6379
 JWT_SECRET=your_jwt_signing_key_secret_here
 PORT=4000
 ```
 
-### Commands
+### Commands & Workflows
 
 1.  **Install dependencies**:
     ```bash
@@ -205,7 +222,7 @@ PORT=4000
 
 3.  **Run Database Migrations**:
     ```bash
-    pnpm --filter @quravo/db db:migrate
+    pnpm db:migrate
     ```
 
 4.  **Seed Default System Tenants & Roles**:
@@ -213,13 +230,25 @@ PORT=4000
     pnpm --filter @quravo/db db:seed
     ```
 
-5.  **Start Dev Servers (API + Web Frontend)**:
+5.  **Start Dev Servers (API + Web + Worker in parallel)**:
     ```bash
     pnpm dev
     ```
 
-6.  **Open Database Studio**:
-    To visually inspect tables, runs:
+6.  **Run Tests & Verification**:
     ```bash
-    pnpm --filter @quravo/db db:studio
+    pnpm test
     ```
+
+7.  **Format & Lint Code**:
+    ```bash
+    pnpm format
+    pnpm lint
+    ```
+
+8.  **Open Drizzle Studio (Database GUI)**:
+    To visually inspect tables and schemas:
+    ```bash
+    pnpm db:studio
+    ```
+

@@ -1,38 +1,71 @@
 # Dependencies
-node_modules
+node_modules/
 .pnpm-store/
 
-# Build
-.next
-dist
-build
-.turbo
-coverage
-
-# TypeScript
+# Build outputs
+.next/
+dist/
+build/
+.turbo/
+coverage/
+.nyc_output/
 *.tsbuildinfo
 
 # Logs
 *.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
 
 # Environment
 .env
 .env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
 
-# Uploads
+# OS / System
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDEs / Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# Uploads & Storage
 uploads/
 apps/api/uploads/
+apps/worker/uploads/
 
-# Generated JS
-apps/api/src/**/*.js
-apps/api/src/**/*.js.map
+# Generated JS & Source Maps
+src/**/*.js
+src/**/*.js.map
+apps/*/src/**/*.js
+apps/*/src/**/*.js.map
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
 
-# PWA
+# Progressive Web App
 apps/web/public/sw.js
 apps/web/public/sw.js.map
 apps/web/public/workbox-*.js
 apps/web/public/workbox-*.js.map
 apps/web/public/worker-*.js
 
-# Drizzle
+# Drizzle & DB Backups
 drizzle/migrations/*.sql.bak
+drizzle.config.ts.timestamp-*
+*.sqlite
+*.db
