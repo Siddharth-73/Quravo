@@ -35,4 +35,4 @@ apps/web/public/workbox-*.js.map
 apps/web/public/worker-*.js
 
 # Drizzle
-drizzle/migrations/*.sql.bakbrew list pnpm
+drizzle/migrations/*.sql.bak
