@@ -8,3 +8,7 @@ build
 .env.local
 drizzle/migrations/*.sql.bak
 coverage
+
+# Generated PWA assets
+apps/web/public/workbox-*.js
+apps/web/public/worker-*.js
